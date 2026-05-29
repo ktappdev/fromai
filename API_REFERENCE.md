@@ -1,4 +1,4 @@
-# Coding Gym API Reference
+# fromai API Reference
 
 Base URL: `http://localhost:8090`
 

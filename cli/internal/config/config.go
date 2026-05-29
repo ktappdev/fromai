@@ -18,7 +18,7 @@ func Path() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("cannot find home directory: %w", err)
 	}
-	return filepath.Join(home, ".config", "coding-gym", "config.toml"), nil
+	return filepath.Join(home, ".config", "fromai", "config.toml"), nil
 }
 
 func Load() (*Config, error) {

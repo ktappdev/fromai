@@ -41,6 +41,24 @@ func ensureTaskRules(app *pocketbase.PocketBase) error {
 	return nil
 }
 
+func ensureArchivedField(app *pocketbase.PocketBase) error {
+	collection, err := app.FindCollectionByNameOrId("tasks")
+	if err != nil {
+		return err
+	}
+	for _, field := range collection.Fields {
+		if field.GetName() == "archived" {
+			return nil // already exists
+		}
+	}
+	collection.Fields.Add(&core.BoolField{
+		Name:     "archived",
+		Required: false,
+		Hidden:   false,
+	})
+	return app.SaveNoValidate(collection)
+}
+
 func ensureAPIKeyField(app *pocketbase.PocketBase) error {
 	collection, err := app.FindCollectionByNameOrId("users")
 	if err != nil {
@@ -165,6 +183,11 @@ func main() {
 			log.Printf("Warning: failed to ensure tasks rules: %v", err)
 		}
 
+		// Ensure archived field exists on tasks collection
+		if err := ensureArchivedField(app); err != nil {
+			log.Printf("Warning: failed to ensure archived field: %v", err)
+		}
+
 		// Ensure api_key field exists on users collection
 		if err := ensureAPIKeyField(app); err != nil {
 			log.Printf("Warning: failed to ensure api_key field: %v", err)
@@ -177,8 +200,10 @@ func main() {
 		se.Router.PATCH("/api/tasks/{id}", updateTaskHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
 		se.Router.POST("/api/tasks/{id}/submit", submitTaskHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
 		se.Router.POST("/api/tasks/{id}/grade", gradeTaskHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
+		se.Router.POST("/api/tasks/{id}/archive", archiveTaskHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
 		se.Router.GET("/api/me", getMeHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
 		se.Router.DELETE("/api/tasks/{id}", deleteTaskHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
+		se.Router.POST("/api/tasks/{id}/delete", deleteTaskHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
 
 		// API key management (JWT auth only — user must be logged in to retrieve key)
 		se.Router.GET("/api/me/api-key", apiKeyHandler(app)).Bind(apis.RequireAuth())
@@ -225,13 +250,20 @@ func listTasksHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) error
 			return err
 		}
 
-		result := make([]map[string]any, len(records))
-		for i, r := range records {
-			result[i] = r.PublicExport()
+		result := make([]map[string]any, 0, len(records))
+		for _, r := range records {
+			if r.GetBool("archived") {
+				continue
+			}
+			result = append(result, r.PublicExport())
 		}
 
 		return e.JSON(http.StatusOK, result)
 	}
+}
+
+func isArchived(record *core.Record) bool {
+	return record.GetBool("archived")
 }
 
 func getTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) error {
@@ -251,6 +283,10 @@ func getTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) error {
 
 		if record.GetString("user") != user.Id {
 			return apis.NewForbiddenError("", nil)
+		}
+
+		if isArchived(record) {
+			return apis.NewNotFoundError("", nil)
 		}
 
 		return e.JSON(http.StatusOK, record.PublicExport())
@@ -284,6 +320,7 @@ func createTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) erro
 		record.Set("code", data["starter_code"])
 		record.Set("language", data["language"])
 		record.Set("status", "pending")
+		record.Set("archived", false)
 		record.Set("user", user.Id)
 		record.Set("created_at", now)
 		record.Set("updated_at", now)
@@ -313,6 +350,10 @@ func updateTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) erro
 
 		if record.GetString("user") != user.Id {
 			return apis.NewForbiddenError("", nil)
+		}
+
+		if isArchived(record) {
+			return apis.NewNotFoundError("", nil)
 		}
 
 		var data map[string]any
@@ -352,6 +393,10 @@ func submitTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) erro
 			return apis.NewForbiddenError("", nil)
 		}
 
+		if isArchived(record) {
+			return apis.NewNotFoundError("", nil)
+		}
+
 		record.Set("status", "completed")
 		record.Set("updated_at", time.Now().UnixMilli())
 
@@ -380,6 +425,10 @@ func gradeTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) error
 
 		if record.GetString("user") != user.Id {
 			return apis.NewForbiddenError("", nil)
+		}
+
+		if isArchived(record) {
+			return apis.NewNotFoundError("", nil)
 		}
 
 		var data map[string]any
@@ -419,7 +468,7 @@ func deleteTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) erro
 		}
 
 		if record.GetString("user") != user.Id {
-			return apis.NewForbiddenError("", nil)
+			return apis.NewNotFoundError("", nil)
 		}
 
 		if err := app.Delete(record); err != nil {
@@ -427,6 +476,36 @@ func deleteTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) erro
 		}
 
 		return e.JSON(http.StatusOK, map[string]bool{"success": true})
+	}
+}
+
+func archiveTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) error {
+	return func(e *core.RequestEvent) error {
+		setCORSHeaders(e.Response)
+
+		user := getAuthUser(e)
+		if user == nil {
+			return apis.NewApiError(http.StatusUnauthorized, "Not authenticated", nil)
+		}
+
+		taskId := e.Request.PathValue("id")
+		record, err := app.FindRecordById("tasks", taskId)
+		if err != nil {
+			return apis.NewNotFoundError("", err)
+		}
+
+		if record.GetString("user") != user.Id {
+			return apis.NewNotFoundError("", nil)
+		}
+
+		record.Set("archived", true)
+		record.Set("updated_at", time.Now().UnixMilli())
+
+		if err := app.Save(record); err != nil {
+			return err
+		}
+
+		return e.JSON(http.StatusOK, record.PublicExport())
 	}
 }
 
@@ -487,6 +566,7 @@ func externalCreateTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEve
 		record.Set("code", data["starter_code"])
 		record.Set("language", data["language"])
 		record.Set("status", "pending")
+		record.Set("archived", false)
 		record.Set("user", userId)
 		record.Set("created_at", now)
 		record.Set("updated_at", now)
@@ -584,9 +664,13 @@ func externalListTasksHandler(app *pocketbase.PocketBase) func(*core.RequestEven
 			return err
 		}
 
-		result := make([]map[string]any, len(records))
-		for i, r := range records {
-			result[i] = r.PublicExport()
+		includeArchived := e.Request.URL.Query().Get("include_archived") == "true"
+		result := make([]map[string]any, 0, len(records))
+		for _, r := range records {
+			if !includeArchived && r.GetBool("archived") {
+				continue
+			}
+			result = append(result, r.PublicExport())
 		}
 
 		return e.JSON(http.StatusOK, result)
@@ -627,7 +711,7 @@ func externalHelpHandler() func(*core.RequestEvent) error {
 		setCORSHeaders(e.Response)
 
 		help := map[string]any{
-			"description": "Coding Gym — AI Agent Integration API",
+			"description": "fromai — AI Agent Integration API",
 			"base_url":    "http://localhost:8090",
 			"auth": map[string]string{
 				"header":     "X-API-Key",
@@ -666,8 +750,9 @@ func externalHelpHandler() func(*core.RequestEvent) error {
 					"description": "List tasks with optional filtering",
 					"auth":        "X-API-Key",
 					"query_params": map[string]string{
-						"user_id": "optional — filter by assigned user",
-						"status":  "optional — pending or completed",
+						"user_id":          "optional — filter by assigned user",
+						"status":           "optional — pending or completed",
+						"include_archived": "optional — include archived tasks (default false)",
 					},
 					"example": "GET /api/external/tasks?user_id=drxvuwj1f95lqa1&status=completed",
 				},

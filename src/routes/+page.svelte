@@ -21,10 +21,15 @@
 	];
 
 	onMount(() => {
-		pb.getMe()
-			.then((u) => { user = u; })
-			.catch(() => { user = null; })
-			.finally(() => { loading = false; });
+		if (!pb.getAuthToken()) {
+			user = null;
+			loading = false;
+		} else {
+			pb.getMe()
+				.then((u) => { user = u; })
+				.catch(() => { user = null; })
+				.finally(() => { loading = false; });
+		}
 
 		const typeInterval = setInterval(() => {
 			if (typeIndex < fullHeadline.length) {
@@ -57,7 +62,7 @@
 	{#if !loading && user}
 		<div class="dashboard">
 			<h1>Welcome back</h1>
-			<p class="sub">Pick a task from the sidebar to start coding.</p>
+			<p class="sub">Your AI works on your codebase and finds real issues.<br />Those become your tasks — bugs to fix, features to build, refactors to finish.<br />Nothing abstract. Just work that ships.</p>
 		</div>
 	{:else}
 		<div class="hero">
@@ -68,10 +73,11 @@
 			<div class="content">
 				<div class="brand">
 					<span class="prompt">$</span>
-					<span class="title">coding gym</span>
+					<span class="title">fromai</span>
 					<span class="cursor">_</span>
 				</div>
 				<p class="tagline">{headline}<span class="caret"></span></p>
+				<p class="subtext">Not puzzles. Real issues your AI found in your codebase.<br />Bugs, features, refactors — tasks that ship.</p>
 				<div class="cta">
 					<a href="/login" class="btn primary">Sign In</a>
 					<a href="/login" class="btn ghost">Get Started</a>
@@ -164,8 +170,16 @@
 		font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
 		font-size: 1.05rem;
 		color: #8b949e;
-		margin: 0 0 32px;
+		margin: 0 0 16px;
 		min-height: 1.5em;
+	}
+
+	.subtext {
+		font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+		font-size: 0.8rem;
+		color: #6e7681;
+		margin: 0 0 32px;
+		line-height: 1.6;
 	}
 
 	.caret {

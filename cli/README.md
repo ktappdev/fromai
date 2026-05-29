@@ -1,11 +1,11 @@
-# Coding Gym CLI
+# fromai CLI
 
-Command-line interface for the Coding Gym task manager.
+Command-line interface for the fromai task manager.
 
 ## Installation
 
 ```bash
-cd cli && go build -o cg ./cmd/cg
+cd cli && go build -o fai ./cmd/fai
 ```
 
 ## Authentication
@@ -14,33 +14,33 @@ cd cli && go build -o cg ./cmd/cg
 
 ```bash
 # Get your API key from the web app: http://localhost:5173/settings
-cg init --key "<your-api-key>"
+fai init --key "<your-api-key>"
 ```
 
-This stores your key in `~/.config/coding-gym/config.toml` with secure permissions (0600).
+This stores your key in `~/.config/fromai/config.toml` with secure permissions (0600).
 
 ### Verify Auth
 
 ```bash
-cg whoami
+fai whoami
 ```
 
 ### Manual/Advanced Usage
 
 **API key** (recommended, doesn't expire):
 ```bash
-cg --api-key "<your-api-key>" task list
+fai --api-key "<your-api-key>" task list
 ```
 
 **Token fallback** (expires after 120h):
 ```bash
-export CODING_GYM_TOKEN="<your-token>"
-cg task list
+export FROMAI_TOKEN="<your-token>"
+fai task list
 ```
 
 Or use the `--token` flag:
 ```bash
-cg --token "<your-token>" task list
+fai --token "<your-token>" task list
 ```
 
 ## Command Reference
@@ -49,28 +49,31 @@ cg --token "<your-token>" task list
 
 ```bash
 # Create a task
-cg task create --title "Binary Search" --starter-code "func search..." --language "go"
+fai task create --title "Binary Search" --starter-code "func search..." --language "go"
 
 # List all tasks
-cg task list
+fai task list
 
 # Get a task
-cg task get <task-id>
+fai task get <task-id>
 
 # Update task code
-cg task update <task-id> --code "func improved..."
+fai task update <task-id> --code "func improved..."
 
 # Submit task for grading
-cg task submit <task-id>
+fai task submit <task-id>
 
 # Grade a task
-cg task grade <task-id> --grade "A" --feedback "Well done!"
+fai task grade <task-id> --grade "A" --feedback "Well done!"
 
-# Delete a task
-cg task delete <task-id>
+# Archive a task (default)
+fai task delete <task-id>
+
+# Permanently delete a task
+fai task delete <task-id> --hard
 
 # Poll until status changes
-cg task poll <task-id> --interval 2s --timeout 5m
+fai task poll <task-id> --interval 2s --timeout 5m
 ```
 
 ### Global Flags
@@ -89,7 +92,7 @@ import (
     "fmt"
     "time"
 
-    "github.com/kentaylor/coding-gym/cli/client"
+    "github.com/kentaylor/fromai/cli/client"
 )
 
 func main() {

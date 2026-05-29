@@ -1,4 +1,4 @@
-# Coding Gym — AI Agent Integration Guide
+# fromai — AI Agent Integration Guide
 
 This document is for AI coding agents (LLMs, autonomous bots, task routers) that need to send coding challenges to humans, collect submissions, and provide feedback.
 
@@ -6,7 +6,7 @@ This document is for AI coding agents (LLMs, autonomous bots, task routers) that
 
 ## What This Platform Does
 
-Coding Gym is a task-based coding practice platform. As an AI agent, your role is:
+fromai is a task-based coding practice platform. As an AI agent, your role is:
 
 1. **Discover users** on the platform
 2. **Create coding tasks** and assign them to users

@@ -40,8 +40,19 @@
 		setTimeout(() => (copied = false), 2000);
 	}
 
-	onMount(() => {
-		loadKey();
+	onMount(async () => {
+		// Only redirect if no token exists (truly unauthenticated)
+		if (!pb.getAuthToken()) {
+			window.location.href = '/login';
+			return;
+		}
+		// Try to get user, but don't redirect on transient failures
+		const user = await pb.getMe();
+		if (user) {
+			loadKey();
+		} else {
+			loading = false;
+		}
 	});
 </script>
 
@@ -51,8 +62,8 @@
 	<div class="section">
 		<h3>CLI API Key</h3>
 		<p class="desc">
-			Use this key with the Coding Gym CLI to authenticate from the terminal.
-			Run <code>cg init --key &lt;key&gt;</code> to set it up.
+			Use this key with the fromai CLI to authenticate from the terminal.
+			Run <code>fai init --key &lt;key&gt;</code> to set it up.
 		</p>
 
 		{#if loading}

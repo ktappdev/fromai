@@ -13,9 +13,18 @@
 
 	async function loadData() {
 		try {
+			// Skip authRefresh call if no token exists
+			if (!pb.getAuthToken()) {
+				user = null;
+				tasks = [];
+				return;
+			}
 			user = await pb.getMe();
 			if (user) {
 				tasks = await pb.listTasks();
+			} else {
+				// Clear tasks if user is null (truly unauthenticated)
+				tasks = [];
 			}
 		} catch (e) {
 			console.error('Failed to load data', e);
@@ -29,9 +38,8 @@
 	});
 
 	afterNavigate(() => {
-		if (user) {
-			pb.listTasks().then((t) => (tasks = t)).catch(() => {});
-		}
+		// Reload user data after navigation from login/signup
+		loadData();
 	});
 
 	// Realtime subscription for tasks
@@ -44,7 +52,11 @@
 			if (e.action === 'create') {
 				tasks = [e.record, ...tasks];
 			} else if (e.action === 'update') {
-				tasks = tasks.map((t) => (t.id === e.record.id ? e.record : t));
+				if (e.record.archived === true) {
+					tasks = tasks.filter((t) => t.id !== e.record.id);
+				} else {
+					tasks = tasks.map((t) => (t.id === e.record.id ? e.record : t));
+				}
 			} else if (e.action === 'delete') {
 				tasks = tasks.filter((t) => t.id !== e.record.id);
 			}
@@ -79,7 +91,7 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
-	<title>Coding Gym</title>
+	<title>fromai</title>
 </svelte:head>
 
 <div class="app">
@@ -87,7 +99,7 @@
 		<div class="sidebar-header">
 			<a href="/" class="logo">
 				<span class="logo-icon">$</span>
-				<span class="logo-text">Coding Gym</span>
+				<span class="logo-text">fromai</span>
 			</a>
 		</div>
 
@@ -101,6 +113,17 @@
 				<p class="auth-title">Ready to code?</p>
 				<p class="auth-sub">Sign in to view your assigned tasks.</p>
 				<a href="/login" class="btn-primary">Sign In</a>
+			</div>
+
+			<div class="sidebar-footer">
+				<a href="/how-it-works" class="settings-link">
+					<span class="settings-icon">?</span>
+					How It Works
+				</a>
+				<a href="/install" class="settings-link">
+					<span class="settings-icon">⬇</span>
+					Install CLI
+				</a>
 			</div>
 		{:else}
 			<div class="user-section">
@@ -144,6 +167,14 @@
 			</div>
 
 			<div class="sidebar-footer">
+				<a href="/how-it-works" class="settings-link">
+					<span class="settings-icon">?</span>
+					How It Works
+				</a>
+				<a href="/install" class="settings-link">
+					<span class="settings-icon">⬇</span>
+					Install CLI
+				</a>
 				<a href="/settings" class="settings-link">
 					<span class="settings-icon">⚙</span>
 					Settings
@@ -159,7 +190,7 @@
 					<div class="dot yellow"></div>
 					<div class="dot green"></div>
 				</div>
-				<span class="terminal-title">coding-gym — zsh</span>
+				<span class="terminal-title">fromai — zsh</span>
 			</div>
 			<div class="terminal-body">
 				{@render children()}

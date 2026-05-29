@@ -1,4 +1,4 @@
-module github.com/kentaylor/coding-gym/cli
+module github.com/kentaylor/fromai/cli
 
 go 1.25.0
 

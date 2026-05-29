@@ -23,8 +23,8 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 # Go / CLI
-cli/cg
-cli/cg.exe
+cli/fai
+cli/fai.exe
 
 # PocketBase
 backend/pb_data/
@@ -37,3 +37,4 @@ backend/main
 
 # Local issue tracking / state
 .beads/
+.pi/agent-sessions/

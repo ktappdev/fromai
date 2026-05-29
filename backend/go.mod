@@ -1,4 +1,4 @@
-module coding-gym-backend
+module fromai-backend
 
 go 1.25.0
 

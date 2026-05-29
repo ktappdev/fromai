@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { pb } from '$lib/pocketbase.js';
+	import { onMount } from 'svelte';
 
 	let title = $state('');
 	let description = $state('');
@@ -8,6 +9,16 @@
 	let language = $state('typescript');
 	let submitting = $state(false);
 	let error = $state('');
+
+	onMount(async () => {
+		// Only redirect if no token exists (truly unauthenticated)
+		if (!pb.getAuthToken()) {
+			goto('/login');
+			return;
+		}
+		// Try to get user, but don't redirect on transient failures
+		await pb.getMe();
+	});
 
 	async function createTask(e: Event) {
 		e.preventDefault();
@@ -57,6 +68,7 @@
 				<option value="rust">Rust</option>
 				<option value="java">Java</option>
 				<option value="cpp">C++</option>
+				<option value="plaintext">Plain text / pseudo-code</option>
 			</select>
 		</div>
 		<div class="field">

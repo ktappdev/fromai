@@ -156,9 +156,28 @@ func (c *Client) GradeTask(id string, req *GradeRequest) (*Task, error) {
 	return &task, nil
 }
 
-func (c *Client) DeleteTask(id string) error {
-	_, err := c.request("DELETE", "/api/tasks/"+id, nil)
-	return err
+func (c *Client) ArchiveTask(id string) (*Task, error) {
+	data, err := c.request("POST", "/api/tasks/"+id+"/archive", nil)
+	if err != nil {
+		return nil, err
+	}
+	var task Task
+	if err := json.Unmarshal(data, &task); err != nil {
+		return nil, fmt.Errorf("unmarshal error: %w", err)
+	}
+	return &task, nil
+}
+
+func (c *Client) DeleteTask(id string) (map[string]any, error) {
+	data, err := c.request("DELETE", "/api/tasks/"+id, nil)
+	if err != nil {
+		return nil, err
+	}
+	var resp map[string]any
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("unmarshal error: %w", err)
+	}
+	return resp, nil
 }
 
 func (c *Client) GetMe() (*User, error) {

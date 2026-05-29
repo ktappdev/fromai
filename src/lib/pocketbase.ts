@@ -107,9 +107,15 @@ export class PocketBaseClient {
 		});
 	}
 
+	async archiveTask(id: string): Promise<any> {
+		return this.request(`/api/tasks/${id}/archive`, {
+			method: 'POST',
+		});
+	}
+
 	async deleteTask(id: string): Promise<any> {
-		return this.request(`/api/tasks/${id}`, {
-			method: 'DELETE',
+		return this.request(`/api/tasks/${id}/delete`, {
+			method: 'POST',
 		});
 	}
 

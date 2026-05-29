@@ -1,8 +1,8 @@
-# Coding Gym — Agent Instructions
+# fromai — Agent Instructions
 
 ## Project Description
 
-**Coding Gym** is a coding task manager where users create tasks with starter code and edit them in a Monaco editor. SvelteKit frontend (Svelte 5 runes mode) talks to a PocketBase v0.39.0 Go backend. All data persists to SQLite via PocketBase. Frontend is client-side only (no SSR).
+**fromai** is a coding task manager where users create tasks with starter code and edit them in a Monaco editor. SvelteKit frontend (Svelte 5 runes mode) talks to a PocketBase v0.39.0 Go backend. All data persists to SQLite via PocketBase. Frontend is client-side only (no SSR).
 
 ## Commands
 
@@ -68,34 +68,37 @@ See `SETUP_POCKETBASE.md` for step-by-step PocketBase collection creation.
 
 AI agents can manage tasks via the Go CLI at `cli/`. It's both a binary and an importable library.
 
+**For AI agents**: See `skills/fromai/SKILL.md` for the complete skill guide on when and how to use `fai`, including async workflow, grading rubrics, and best practices.
+
 ### Setup (one-time)
 
 ```bash
-# Get your API key from the web app: http://localhost:5173/settings
-cg init --key "your-api-key"
+# Get your API key from the fromai settings page (one-time human setup)
+fai init --key "your-api-key"
 ```
 
-This stores the key in `~/.config/coding-gym/config.toml`. Subsequent commands read it automatically.
+This stores the key in `~/.config/fromai/config.toml`. Subsequent commands read it automatically.
 
 ### Binary usage
 
 ```bash
 # Build
-cd cli && go build -o cg ./cmd/cg
+cd cli && go build -o fai ./cmd/fai
 
 # Verify auth
-cg whoami
+fai whoami
 
 # Commands
-cg task create --title "Sort Array" --starter-code "// TODO" --language typescript
-cg task list
-cg task get <id>
-cg task update <id> --code "..."
-cg task submit <id>
-cg task grade <id> --grade "A" --feedback "nice work"
-cg task delete <id>
-cg task poll <id>                    # blocks until status changes
-cg task poll <id> --interval 10s --timeout 5m
+fai task create --title "Sort Array" --starter-code "// TODO" --language typescript
+fai task list
+fai task get <id>
+fai task update <id> --code "..."
+fai task submit <id>                   # human action
+fai task grade <id> --grade "A" --feedback "nice work"
+fai task delete <id>                    # archive by default
+fai task delete <id> --hard           # permanent delete
+fai task poll <id>                    # only if user explicitly asks to wait
+fai task poll <id> --interval 10s --timeout 5m
 ```
 
 All commands accept `--json` for raw JSON output. Auth supports both `--api-key` (X-API-Key header) and `--token` (Authorization header, JWT). If neither is set, the CLI reads from config file.
@@ -103,7 +106,7 @@ All commands accept `--json` for raw JSON output. Auth supports both `--api-key`
 ### Library usage (Go)
 
 ```go
-import "github.com/kentaylor/coding-gym/cli/client"
+import "github.com/kentaylor/fromai/cli/client"
 
 c := client.NewClient("http://127.0.0.1:8090", "")
 c.SetAPIKey("your-api-key")
@@ -115,15 +118,16 @@ task, err := c.CreateTask(&client.CreateTaskRequest{
     Language:    "typescript",
 })
 
-// Poll until human completes it
-task, err = client.PollTask(c, task.ID, 5*time.Second, 10*time.Minute)
+// Default: report ID and continue
+// Poll only if user explicitly asks to wait
+// task, err = client.PollTask(c, task.ID, 5*time.Second, 10*time.Minute)
 ```
 
 ### Auth
 
 Two mechanisms:
-- **API key** (recommended): `cg init --key <key>` → stored in config → sent as `X-API-Key` header. Keys don't expire. Get your key from the `/settings` page.
-- **JWT token**: `--token` flag or `CODING_GYM_TOKEN` env var → sent as `Authorization` header. Tokens expire after 120h.
+- **API key** (recommended): `fai init --key <key>` → stored in config → sent as `X-API-Key` header. Keys don't expire. Get your key from the `/settings` page.
+- **JWT token**: `--token` flag or `FROMAI_TOKEN` env var → sent as `Authorization` header. Tokens expire after 120h.
 
 API keys are auto-generated on signup and can be regenerated from the settings page.
 

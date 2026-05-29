@@ -10,6 +10,7 @@ type Task struct {
 	Status       string `json:"status"`
 	Grade        string `json:"grade"`
 	Feedback     string `json:"feedback"`
+	Archived     bool   `json:"archived"`
 	User         string `json:"user"`
 	CreatedAt    int64  `json:"created_at"`
 	UpdatedAt    int64  `json:"updated_at"`
