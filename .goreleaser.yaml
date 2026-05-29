@@ -1,0 +1,58 @@
+version: 2
+
+before:
+  hooks:
+    - cd cli && go mod tidy
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    dir: cli
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    flags:
+      - -trimpath
+    ldflags:
+      - '-s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}'
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    binary: fai
+    main: ./cmd/fai
+
+archives:
+  - format: tar.gz
+    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+    format_overrides:
+      - goos: windows
+        format: zip
+
+brews:
+  - name: fai
+    homepage: https://github.com/ktappdev/fromai.dev-coding-gym-
+    tap:
+      owner: ktappdev
+      name: tap
+      branch: main
+      token: '{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}'
+    folder: Formula
+    commit_author:
+      name: goreleaser-bot
+      email: bot@goreleaser.com
+    description: "CLI for the fromai coding task manager"
+    license: MIT
+    test: |
+      system "#{bin}/fai --help"
+    skip_upload: false
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - '^chore:'
+      - '^build:'
