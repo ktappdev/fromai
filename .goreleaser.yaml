@@ -32,12 +32,12 @@ archives:
 brews:
   - name: fai
     homepage: https://github.com/ktappdev/fromai.dev-coding-gym-
-    tap:
+    repository:
       owner: ktappdev
       name: tap
       branch: main
       token: '{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}'
-    folder: Formula
+    directory: Formula
     commit_author:
       name: goreleaser-bot
       email: bot@goreleaser.com
