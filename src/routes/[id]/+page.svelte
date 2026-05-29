@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { pb } from '$lib/pocketbase.js';
 	let { data } = $props<{ data: { id: string } }>();
 
@@ -11,7 +12,12 @@
 	let saving = $state(false);
 	let saveStatus = $state('');
 	let finishing = $state(false);
+	let confirmDelete = $state(false);
+	let deleting = $state(false);
 	let monacoReady = $state(false);
+
+	// Derived state for read-only mode (completed tasks)
+	let isReadOnly = $derived(task?.status === 'completed');
 
 	function getMonacoLanguage(lang: string): string {
 		const map: Record<string, string> = {
@@ -98,6 +104,7 @@
 			if (oldModel) oldModel.dispose();
 			const newModel = monaco.editor.createModel(code, lang);
 			editor.setModel(newModel);
+			editor.updateOptions({ readOnly: isReadOnly });
 		} else {
 			editor = monaco.editor.create(editorContainer, {
 				value: code,
@@ -106,7 +113,8 @@
 				automaticLayout: true,
 				fontSize: 14,
 				minimap: { enabled: false },
-				scrollBeyondLastLine: false
+				scrollBeyondLastLine: false,
+				readOnly: isReadOnly
 			});
 		}
 	});
@@ -137,6 +145,21 @@
 		}
 		finishing = false;
 	}
+
+	function promptDelete() {
+		confirmDelete = true;
+	}
+
+	async function confirmDeleteTask() {
+		deleting = true;
+		try {
+			await pb.deleteTask(data.id);
+			goto('/');
+		} catch (e: any) {
+			saveStatus = e.message || 'Delete failed';
+			deleting = false;
+		}
+	}
 </script>
 
 <div class="task-view">
@@ -166,7 +189,7 @@
 				</div>
 			{/if}
 			<div class="actions">
-				<button onclick={save} disabled={saving}>
+				<button onclick={save} disabled={saving || isReadOnly}>
 					{saving ? 'Saving...' : 'Save'}
 				</button>
 				<button class="finish" onclick={finish} disabled={finishing || task.status === 'completed'}>
@@ -174,6 +197,19 @@
 				</button>
 				{#if saveStatus}
 					<span class="save-status">{saveStatus}</span>
+				{/if}
+				{#if isReadOnly}
+					<span class="readonly-badge">read-only</span>
+				{/if}
+				<span class="spacer"></span>
+				{#if confirmDelete}
+					<span class="delete-confirm-label">Confirm?</span>
+					<button class="delete-confirm" onclick={confirmDeleteTask} disabled={deleting}>
+						{deleting ? 'Deleting...' : 'Confirm?'}
+					</button>
+					<button class="cancel" onclick={() => confirmDelete = false} disabled={deleting}>Cancel</button>
+				{:else}
+					<button class="delete" onclick={promptDelete}>Delete</button>
 				{/if}
 			</div>
 		</div>
@@ -322,9 +358,56 @@
 		cursor: not-allowed;
 	}
 
+	.actions .spacer {
+		flex: 1;
+	}
+
+	.actions button.delete {
+		background: transparent;
+		color: #f85149;
+		border: 1px solid #f85149;
+	}
+
+	.actions button.delete:hover:not(:disabled) {
+		background: rgba(248, 81, 73, 0.1);
+	}
+
+	.actions button.delete-confirm {
+		background: #f85149;
+		color: #fff;
+	}
+
+	.actions button.delete-confirm:hover:not(:disabled) {
+		background: #da3633;
+	}
+
+	.actions button.cancel {
+		background: transparent;
+		color: #8b949e;
+		border: none;
+		padding: 6px 10px;
+	}
+
+	.actions button.cancel:hover:not(:disabled) {
+		color: #e2e8f0;
+	}
+
+	.delete-confirm-label {
+		font-size: 0.75rem;
+		color: #f85149;
+	}
+
 	.save-status {
 		font-size: 0.75rem;
 		color: #3fb950;
+	}
+
+	.readonly-badge {
+		font-size: 0.65rem;
+		padding: 2px 8px;
+		background: rgba(210, 153, 34, 0.15);
+		color: #d29922;
+		font-weight: 600;
 	}
 
 	.editor-wrapper {

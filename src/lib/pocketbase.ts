@@ -51,35 +51,66 @@ export class PocketBaseClient {
 		}
 	}
 
+	private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
+		const res = await fetch(`${getBaseURL()}${path}`, {
+			...options,
+			headers: {
+				'Authorization': this.getAuthToken(),
+				'Content-Type': 'application/json',
+				...(options.headers || {}),
+			},
+		});
+		if (!res.ok) {
+			const err = await res.text();
+			throw new Error(`Request failed: ${res.status} ${err}`);
+		}
+		return res.json();
+	}
+
 	async createTask(data: {
 		title: string;
 		description: string;
 		starter_code: string;
 		language: string;
-	}) {
-		return this.pb.collection('tasks').create(data);
-	}
-
-	async getTask(id: string) {
-		return this.pb.collection('tasks').getOne(id);
-	}
-
-	async listTasks() {
-		return this.pb.collection('tasks').getFullList({
-			sort: '-created_at',
+	}): Promise<any> {
+		return this.request('/api/tasks', {
+			method: 'POST',
+			body: JSON.stringify(data),
 		});
 	}
 
-	async updateTaskCode(id: string, code: string) {
-		return this.pb.collection('tasks').update(id, { code });
+	async getTask(id: string): Promise<any> {
+		return this.request(`/api/tasks/${id}`);
 	}
 
-	async submitTask(id: string) {
-		return this.pb.collection('tasks').update(id, { status: 'completed' });
+	async listTasks() {
+		return this.request<any[]>('/api/tasks');
 	}
 
-	async gradeTask(id: string, grade: string, feedback?: string) {
-		return this.pb.collection('tasks').update(id, { grade, feedback });
+	async updateTaskCode(id: string, code: string): Promise<any> {
+		return this.request(`/api/tasks/${id}`, {
+			method: 'PATCH',
+			body: JSON.stringify({ code }),
+		});
+	}
+
+	async submitTask(id: string): Promise<any> {
+		return this.request(`/api/tasks/${id}/submit`, {
+			method: 'POST',
+		});
+	}
+
+	async gradeTask(id: string, grade: string, feedback?: string): Promise<any> {
+		return this.request(`/api/tasks/${id}/grade`, {
+			method: 'POST',
+			body: JSON.stringify({ grade, feedback }),
+		});
+	}
+
+	async deleteTask(id: string): Promise<any> {
+		return this.request(`/api/tasks/${id}`, {
+			method: 'DELETE',
+		});
 	}
 
 	async subscribeToTasks(callback: (e: any) => void) {

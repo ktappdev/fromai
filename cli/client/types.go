@@ -1,20 +1,18 @@
 package client
 
-import "time"
-
 type Task struct {
-	ID           string    `json:"id"`
-	Title        string    `json:"title"`
-	Description  string    `json:"description"`
-	StarterCode  string    `json:"starter_code"`
-	Code         string    `json:"code"`
-	Language     string    `json:"language"`
-	Status       string    `json:"status"`
-	Grade        string    `json:"grade"`
-	Feedback     string    `json:"feedback"`
-	User         string    `json:"user"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID           string `json:"id"`
+	Title        string `json:"title"`
+	Description  string `json:"description"`
+	StarterCode  string `json:"starter_code"`
+	Code         string `json:"code"`
+	Language     string `json:"language"`
+	Status       string `json:"status"`
+	Grade        string `json:"grade"`
+	Feedback     string `json:"feedback"`
+	User         string `json:"user"`
+	CreatedAt    int64  `json:"created_at"`
+	UpdatedAt    int64  `json:"updated_at"`
 }
 
 type CreateTaskRequest struct {
@@ -44,11 +42,11 @@ type AuthResponse struct {
 }
 
 type User struct {
-	ID        string    `json:"id"`
-	Email     string    `json:"email"`
-	Name      string    `json:"name"`
-	Created   time.Time `json:"created"`
-	Updated   time.Time `json:"updated"`
+	ID        string `json:"id"`
+	Email     string `json:"email"`
+	Name      string `json:"name"`
+	Created   string `json:"created"`
+	Updated   string `json:"updated"`
 }
 
 type ListTasksResponse []Task

@@ -156,6 +156,11 @@ func (c *Client) GradeTask(id string, req *GradeRequest) (*Task, error) {
 	return &task, nil
 }
 
+func (c *Client) DeleteTask(id string) error {
+	_, err := c.request("DELETE", "/api/tasks/"+id, nil)
+	return err
+}
+
 func (c *Client) GetMe() (*User, error) {
 	data, err := c.request("GET", "/api/me", nil)
 	if err != nil {

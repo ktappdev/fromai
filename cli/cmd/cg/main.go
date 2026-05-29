@@ -234,6 +234,26 @@ var gradeCmd = &cobra.Command{
 	},
 }
 
+var deleteCmd = &cobra.Command{
+	Use:     "delete <id>",
+	Short:   "Delete a task",
+	Long:    `Delete a task permanently. Only the owner can delete their own tasks.`,
+	Example: `  cg task delete abc123`,
+	Args:    cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		err := resolveClient().DeleteTask(args[0])
+		if err != nil {
+			printError(cmd, err)
+			os.Exit(1)
+		}
+		if flagJSON {
+			fmt.Println(`{"success":true}`)
+			return
+		}
+		fmt.Println("Task deleted")
+	},
+}
+
 var pollCmd = &cobra.Command{
 	Use:     "poll <id>",
 	Short:   "Poll a task until status changes",
@@ -333,7 +353,7 @@ func init() {
 	initCmd.Flags().String("key", "", "API key from settings page (required)")
 	initCmd.MarkFlagRequired("key")
 
-	taskCmd.AddCommand(createCmd, listCmd, getCmd, updateCmd, submitCmd, gradeCmd, pollCmd)
+	taskCmd.AddCommand(createCmd, listCmd, getCmd, updateCmd, submitCmd, gradeCmd, deleteCmd, pollCmd)
 	rootCmd.AddCommand(taskCmd, initCmd, whoamiCmd)
 }
 

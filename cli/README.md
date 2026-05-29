@@ -66,6 +66,9 @@ cg task submit <task-id>
 # Grade a task
 cg task grade <task-id> --grade "A" --feedback "Well done!"
 
+# Delete a task
+cg task delete <task-id>
+
 # Poll until status changes
 cg task poll <task-id> --interval 2s --timeout 5m
 ```

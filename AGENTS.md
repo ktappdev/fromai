@@ -93,6 +93,7 @@ cg task get <id>
 cg task update <id> --code "..."
 cg task submit <id>
 cg task grade <id> --grade "A" --feedback "nice work"
+cg task delete <id>
 cg task poll <id>                    # blocks until status changes
 cg task poll <id> --interval 10s --timeout 5m
 ```

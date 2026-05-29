@@ -14,7 +14,32 @@ import (
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tools/hook"
+	"github.com/pocketbase/pocketbase/tools/types"
 )
+
+func ensureTaskRules(app *pocketbase.PocketBase) error {
+	collection, err := app.FindCollectionByNameOrId("tasks")
+	if err != nil {
+		return err
+	}
+
+	ownerRule := "user = @request.auth.id"
+	changed := false
+
+	if collection.ListRule == nil || *collection.ListRule != ownerRule {
+		collection.ListRule = types.Pointer(ownerRule)
+		changed = true
+	}
+	if collection.ViewRule == nil || *collection.ViewRule != ownerRule {
+		collection.ViewRule = types.Pointer(ownerRule)
+		changed = true
+	}
+
+	if changed {
+		return app.SaveNoValidate(collection)
+	}
+	return nil
+}
 
 func ensureAPIKeyField(app *pocketbase.PocketBase) error {
 	collection, err := app.FindCollectionByNameOrId("users")
@@ -32,7 +57,7 @@ func ensureAPIKeyField(app *pocketbase.PocketBase) error {
 		Max:      64,
 		Hidden:   true, // don't expose in public API responses
 	})
-	return app.Save(collection)
+	return app.SaveNoValidate(collection)
 }
 
 func generateAPIKey() (string, error) {
@@ -66,18 +91,18 @@ func optionalAPIKeyAuth(app *pocketbase.PocketBase) *hook.Handler[*core.RequestE
 		Func: func(e *core.RequestEvent) error {
 			// If already authenticated via JWT, skip
 			if e.Auth != nil {
-				return nil
+				return e.Next()
 			}
 			apiKey := e.Request.Header.Get("X-API-Key")
 			if apiKey == "" {
-				return nil // no API key provided, let RequireAuth handle it
+				return e.Next() // no API key provided, let RequireAuth handle it
 			}
 			user, err := findUserByAPIKey(app, apiKey)
 			if err != nil {
-				return nil // invalid key, let RequireAuth reject
+				return e.Next() // invalid key, let RequireAuth reject
 			}
 			e.Auth = user
-			return nil
+			return e.Next()
 		},
 	}
 }
@@ -135,6 +160,11 @@ func main() {
 	})
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
+		// Ensure tasks collection rules allow owner-scoped realtime subscriptions
+		if err := ensureTaskRules(app); err != nil {
+			log.Printf("Warning: failed to ensure tasks rules: %v", err)
+		}
+
 		// Ensure api_key field exists on users collection
 		if err := ensureAPIKeyField(app); err != nil {
 			log.Printf("Warning: failed to ensure api_key field: %v", err)
@@ -148,6 +178,7 @@ func main() {
 		se.Router.POST("/api/tasks/{id}/submit", submitTaskHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
 		se.Router.POST("/api/tasks/{id}/grade", gradeTaskHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
 		se.Router.GET("/api/me", getMeHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
+		se.Router.DELETE("/api/tasks/{id}", deleteTaskHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
 
 		// API key management (JWT auth only — user must be logged in to retrieve key)
 		se.Router.GET("/api/me/api-key", apiKeyHandler(app)).Bind(apis.RequireAuth())
@@ -369,6 +400,33 @@ func gradeTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) error
 		}
 
 		return e.JSON(http.StatusOK, record.PublicExport())
+	}
+}
+
+func deleteTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) error {
+	return func(e *core.RequestEvent) error {
+		setCORSHeaders(e.Response)
+
+		user := getAuthUser(e)
+		if user == nil {
+			return apis.NewApiError(http.StatusUnauthorized, "Not authenticated", nil)
+		}
+
+		taskId := e.Request.PathValue("id")
+		record, err := app.FindRecordById("tasks", taskId)
+		if err != nil {
+			return apis.NewNotFoundError("", err)
+		}
+
+		if record.GetString("user") != user.Id {
+			return apis.NewForbiddenError("", nil)
+		}
+
+		if err := app.Delete(record); err != nil {
+			return apis.NewApiError(http.StatusInternalServerError, "Failed to delete task", err)
+		}
+
+		return e.JSON(http.StatusOK, map[string]bool{"success": true})
 	}
 }
 
