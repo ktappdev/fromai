@@ -79,6 +79,24 @@
 		return 'U';
 	}
 
+	function formatTime(ts: number): string {
+		const now = Date.now();
+		const diff = now - ts;
+		const seconds = diff / 1000;
+		const minutes = seconds / 60;
+		const hours = minutes / 60;
+		const days = hours / 24;
+
+		if (hours < 1) return 'just now';
+		if (hours < 24) return `${Math.floor(hours)}h ago`;
+		if (days < 7) return `${Math.floor(days)}d ago`;
+		if (days < 30) return `${Math.floor(days)}d ago`;
+
+		const date = new Date(ts);
+		const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+		return `${months[date.getMonth()]} ${date.getDate()}`;
+	}
+
 	async function logout() {
 		try {
 			pb.signOut();
@@ -156,6 +174,7 @@
 								<a href="/{task.id}">
 									<div class="task-info">
 										<span class="task-title">{task.title}</span>
+										<span class="task-time">{formatTime(task.created_at)}</span>
 										<span class="task-lang">{task.language}</span>
 									</div>
 									<span class="task-status" class:completed={task.status === 'completed'}></span>
@@ -174,6 +193,10 @@
 				<a href="/install" class="settings-link">
 					<span class="settings-icon">⬇</span>
 					Install CLI
+				</a>
+				<a href="/stats" class="settings-link">
+					<span class="settings-icon">∑</span>
+					Stats
 				</a>
 				<a href="/settings" class="settings-link">
 					<span class="settings-icon">⚙</span>
@@ -503,6 +526,11 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+	}
+
+	.task-time {
+		font-size: 0.65rem;
+		color: #6e7681;
 	}
 
 	.task-lang {

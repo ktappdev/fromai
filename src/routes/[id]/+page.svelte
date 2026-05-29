@@ -307,7 +307,7 @@
 	.meta code { background: #000; padding: 1px 5px; color: #58a6ff; font-family: inherit; }
 	.grade { background: #000; border: 1px solid #1a1a1a; padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; }
 	.grade::before { content: '$ grade\A'; color: #238636; white-space: pre; }
-	.grade p { margin: 6px 0 0; color: #8b949e; }
+	.grade p { margin: 6px 0 0; color: #8b949e; white-space: pre-wrap; line-height: 1.5; }
 	.actions { display: flex; align-items: center; gap: 8px; }
 	.actions button { background: #1f6feb; color: #fff; border: none; padding: 6px 14px; font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit; }
 	.actions button:hover:not(:disabled) { background: #388bfd; }

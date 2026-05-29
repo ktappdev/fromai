@@ -21,14 +21,18 @@
 	];
 
 	onMount(() => {
-		if (!pb.getAuthToken()) {
+		const hasToken = !!pb.getAuthToken();
+		if (!hasToken) {
 			user = null;
 			loading = false;
 		} else {
 			pb.getMe()
 				.then((u) => { user = u; })
 				.catch(() => { user = null; })
-				.finally(() => { loading = false; });
+				.finally(() => {
+					if (!user) user = { email: '' };
+					loading = false;
+				});
 		}
 
 		const typeInterval = setInterval(() => {

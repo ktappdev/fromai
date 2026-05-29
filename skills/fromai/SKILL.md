@@ -1,6 +1,6 @@
 ---
 name: fromai
-description: Keep the human in the loop with real-world code tasks, scoped to meaningful parts of the project. The agent works on actual code and sends small, scoped tasks for the human to write or review — real functions, fixes, and patterns from the codebase, not abstract puzzles. Tasks can be simple; the goal is practice and engagement with real code, not just hard problems.
+description: While implementing code, when you encounter a self-contained function, bug fix, or refactor (15-60 min, scoped to one file), offload it as a real-code task for the human to write. Use when you spot isolated work inside a larger change — a single function, a validation block, a parsing routine. Do NOT use for vague epics, secrets, or pure questions.
 ---
 
 # fromai/fai — AI Agent Skill
@@ -105,6 +105,18 @@ Good tasks are also:
 - **Self-contained**: No external dependencies beyond standard libraries
 - **Well-started**: Provide useful starter code or clear description
 
+## Starter Code Scope Rule
+
+**Send the entire relevant block, not a cherry-picked snippet.** The human can only see what you give them. If you send one link and the task says "all links," they'll do one link.
+
+Rules:
+- **Template/HTML area**: Send the full template block (all sibling elements, the whole `<div>` or section). In Svelte, send the entire `{#if}`/`{#each}` block or the full template section between `<script>` and `<style>`.
+- **Function scope**: Send the full function, not just the line that needs changing. Include surrounding functions if they provide context.
+- **Multiple items**: If the task touches multiple similar elements (all sidebar links, all error messages, all button variants), send ALL of them. Don't send one and expect the human to guess the rest.
+- **Whole file if needed**: If the file is under 300 lines, just send the whole thing. The human needs to understand structure to make good changes.
+
+**Test your starter code**: Before submitting, ask: "If I only saw this starter code, would I know every line that needs to change?" If no, expand it.
+
 Use `--language` for syntax highlighting (typescript, javascript, python, go, etc.).
 
 ## Accepted Submission Types
@@ -129,7 +141,11 @@ Grading is user-triggered. When the user says something like "grade my fromai ta
    ```bash
    fai task get <id> --json
    ```
-3. Review the submission (code or pseudo-code)
+3. Review the submission (code or pseudo-code). Always run a diff first:
+   ```bash
+   diff <(fai task get <id> --json | jq -r '.starter_code') <(fai task get <id> --json | jq -r '.code')
+   ```
+   This shows exactly what changed. Never rely on equality checks alone — even a single comment is a meaningful change.
 4. Grade using the appropriate rubric (below)
 5. Submit grade:
    ```bash
