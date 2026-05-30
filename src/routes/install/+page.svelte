@@ -21,15 +21,8 @@
 		<p class="desc">Install via Homebrew tap (recommended for macOS/Linux).</p>
 		<div class="code-block">
 			<span class="prompt">$</span>
-			<code>brew tap &lt;github-org&gt;/fromai</code>
-			<button onclick={() => copyCommand('brew tap <github-org>/fromai', 'brew-tap')} class="copy-btn">
-				{copied === 'brew-tap' ? '✓' : '📋'}
-			</button>
-		</div>
-		<div class="code-block">
-			<span class="prompt">$</span>
-			<code>brew install fai</code>
-			<button onclick={() => copyCommand('brew install fai', 'brew-install')} class="copy-btn">
+			<code>brew install ktappdev/tap/fai</code>
+			<button onclick={() => copyCommand('brew install ktappdev/tap/fai', 'brew-install')} class="copy-btn">
 				{copied === 'brew-install' ? '✓' : '📋'}
 			</button>
 		</div>
