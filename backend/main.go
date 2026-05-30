@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
@@ -166,6 +167,10 @@ func apiKeyHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) error {
 }
 
 func main() {
+	// Load .env files (local overrides base, like Vite)
+	godotenv.Load(".env.local")
+	godotenv.Load()
+
 	app := pocketbase.New()
 
 	app.OnRecordCreate("users").BindFunc(func(e *core.RecordEvent) error {
@@ -710,9 +715,14 @@ func externalHelpHandler() func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
 		setCORSHeaders(e.Response)
 
+		baseURL := os.Getenv("PUBLIC_URL")
+		if baseURL == "" {
+			baseURL = "http://localhost:8090"
+		}
+
 		help := map[string]any{
 			"description": "fromai — AI Agent Integration API",
-			"base_url":    "http://localhost:8090",
+			"base_url":    baseURL,
 			"auth": map[string]string{
 				"header":     "X-API-Key",
 				"env_source": "EXTERNAL_API_KEY (set by human operator)",

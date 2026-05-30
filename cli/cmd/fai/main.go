@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/kentaylor/fromai/cli/client"
 	"github.com/kentaylor/fromai/cli/internal/config"
 	"github.com/spf13/cobra"
@@ -34,20 +35,29 @@ func resolveClient() *client.Client {
 	token := resolveToken()
 	apiKey := flagAPIKey
 
-	// Try config file
-	if token == "" && apiKey == "" {
+	// Resolve base URL: flag > env var > config file > default
+	baseURL := flagBaseURL
+	if baseURL == "http://127.0.0.1:8090" {
+		if envURL := os.Getenv("FROMAI_BASE_URL"); envURL != "" {
+			baseURL = envURL
+		}
+	}
+	if baseURL == "http://127.0.0.1:8090" {
 		cfg, err := config.Load()
-		if err == nil {
-			if cfg.APIKey != "" {
-				apiKey = cfg.APIKey
-			}
-			if cfg.BaseURL != "" && flagBaseURL == "http://127.0.0.1:8090" {
-				flagBaseURL = cfg.BaseURL
-			}
+		if err == nil && cfg.BaseURL != "" {
+			baseURL = cfg.BaseURL
 		}
 	}
 
-	c := client.NewClient(flagBaseURL, token)
+	// Try config file for API key
+	if token == "" && apiKey == "" {
+		cfg, err := config.Load()
+		if err == nil && cfg.APIKey != "" {
+			apiKey = cfg.APIKey
+		}
+	}
+
+	c := client.NewClient(baseURL, token)
 	if apiKey != "" {
 		c.SetAPIKey(apiKey)
 	}
@@ -351,7 +361,7 @@ var whoamiCmd = &cobra.Command{
 func init() {
 	rootCmd.PersistentFlags().StringVar(&flagToken, "token", "", "PocketBase auth token (or set FROMAI_TOKEN env var)")
 	rootCmd.PersistentFlags().StringVar(&flagAPIKey, "api-key", "", "API key for X-API-Key header")
-	rootCmd.PersistentFlags().StringVar(&flagBaseURL, "base-url", "http://127.0.0.1:8090", "Base URL")
+	rootCmd.PersistentFlags().StringVar(&flagBaseURL, "base-url", "http://127.0.0.1:8090", "Base URL (default: $FROMAI_BASE_URL or http://127.0.0.1:8090)")
 	rootCmd.PersistentFlags().BoolVar(&flagJSON, "json", false, "Output as raw JSON")
 
 	createCmd.Flags().String("title", "", "Task title (required)")
@@ -382,6 +392,10 @@ func init() {
 }
 
 func main() {
+	// Load .env files (local overrides base, like Vite)
+	godotenv.Load(".env.local")
+	godotenv.Load()
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
