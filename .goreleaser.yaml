@@ -20,14 +20,14 @@ builds:
 
 archives:
   - formats: ['tar.gz']
-    name_template: 'fromai.dev-coding-gym_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+    name_template: 'fromai.dev_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
 
 checksum:
-  name_template: 'fromai.dev-coding-gym_{{ .Version }}_checksums.txt'
+  name_template: 'fromai.dev_{{ .Version }}_checksums.txt'
 
 brews:
   - name: fai
-    homepage: https://github.com/ktappdev/fromai.dev-coding-gym-
+    homepage: https://github.com/ktappdev/fromai.dev
     repository:
       owner: ktappdev
       name: homebrew-tap
