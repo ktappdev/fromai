@@ -30,7 +30,7 @@ brews:
     homepage: https://github.com/ktappdev/fromai.dev-coding-gym-
     repository:
       owner: ktappdev
-      name: tap
+      name: homebrew-tap
       branch: main
     directory: Formula
     commit_author:
