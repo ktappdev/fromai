@@ -182,6 +182,35 @@ Priority for base URL resolution: `--base-url` flag > `FROMAI_BASE_URL` env var 
 - Config stored in `~/.config/fromai/config.toml`
 - Library can be imported as `github.com/kentaylor/fromai/cli/client`
 
+## Release
+
+To release a new version of the fromai CLI, use the `release-cli.sh` script. This automates version bumping, tagging, and triggers the GitHub Actions workflow for goreleaser and Homebrew formula generation.
+
+```bash
+# Bump major version (v1.2.3 → v2.0.0)
+./release-cli.sh --major
+
+# Bump minor version (v1.2.3 → v1.3.0)
+./release-cli.sh --minor
+
+# Bump patch version (v1.2.3 → v1.2.4)
+./release-cli.sh --patch
+
+# Use specific version
+./release-cli.sh v1.2.3
+```
+
+The script will:
+- Auto-bump from the latest tag if version not provided
+- Prompt for confirmation before proceeding
+- Commit any uncommitted changes in `cli/`
+- Verify the CLI builds successfully
+- Push to `origin/main` and create/push the annotated tag
+- Trigger GitHub Actions for goreleaser/Homebrew
+
+Monitor the release at:
+- https://github.com/ktappdev/fromai/actions
+
 ## License
 
 MIT License — Copyright (c) 2025, Kent Taylor

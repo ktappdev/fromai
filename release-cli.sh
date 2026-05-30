@@ -1,5 +1,29 @@
 #!/bin/bash
 
+# release-cli.sh - Release automation for the fromai CLI
+#
+# This script automates the release process for the fromai CLI tool.
+# It bumps the version (or accepts a manual version), commits any changes,
+# pushes to origin/main, creates an annotated git tag, and triggers the
+# GitHub Actions workflow for goreleaser and Homebrew formula generation.
+#
+# Usage:
+#   ./release-cli.sh --major      # Bump major version (v1.2.3 → v2.0.0)
+#   ./release-cli.sh --minor      # Bump minor version (v1.2.3 → v1.3.0)
+#   ./release-cli.sh --patch      # Bump patch version (v1.2.3 → v1.2.4)
+#   ./release-cli.sh v1.2.3       # Use specific version
+#
+# The script will:
+#   - Auto-bump from the latest tag if version not provided
+#   - Prompt for confirmation before proceeding
+#   - Commit any uncommitted changes in cli/
+#   - Verify the CLI builds successfully
+#   - Push to origin/main and create/push the annotated tag
+#   - Trigger GitHub Actions for goreleaser/Homebrew
+#
+# Monitor the release at:
+#   https://github.com/ktappdev/fromai/actions
+
 set -euo pipefail
 
 # Colors for output
