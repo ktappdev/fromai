@@ -8,6 +8,7 @@
 
 ```bash
 # Frontend (pnpm with engine-strict=true)
+cd frontend
 pnpm install              # Install deps
 pnpm run dev              # Dev server (opens browser via vite.server.open)
 pnpm run build            # Production build
@@ -33,7 +34,7 @@ cd backend && go run main.go   # Start PocketBase server (port 8090)
 ### Frontend Patterns
 - **Client-side only**: No SSR, no `+page.server.ts`. Guard `localStorage` with `typeof window !== 'undefined'`
 - **Data fetching**: All in `.svelte` files via SvelteKit `load()` or direct effects
-- **PocketBase client**: Use `PocketBaseClient` class from `src/lib/pocketbase.ts` — not raw fetch
+- **PocketBase client**: Use `PocketBaseClient` class from `frontend/src/lib/pocketbase.ts` — not raw fetch
 - **Auth token**: Stored in localStorage as raw string (no "Bearer " prefix)
 - **Monaco editor**: Loaded from CDN, not bundled
 
@@ -138,5 +139,5 @@ See `cli/README.md` for full reference.
 - **DO NOT auto-run**: Never run `pnpm run dev`, `go run`, or similar. User starts things manually.
 - **Keep changes minimal**: Surgical edits only — don't refactor unrelated code
 - **Simplicity first**: If a simpler approach exists, suggest it before implementing
-- **Verify typecheck**: Run `pnpm run check` after TypeScript changes
+- **Verify typecheck**: Run `cd frontend && pnpm run check` after TypeScript changes
 - **Check memory**: Run `engram search` before debugging or implementing patterns that may have been solved before

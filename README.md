@@ -8,7 +8,7 @@ AI-powered coding task manager where users create tasks with starter code and ed
 
 This monorepo consists of three packages:
 
-- **Frontend** (`src/`): SvelteKit application with Svelte 5 runes mode. Client-side only (no SSR). Uses PocketBase SDK for real-time subscriptions and auth.
+- **Frontend** (`frontend/src/`): SvelteKit application with Svelte 5 runes mode. Client-side only (no SSR). Uses PocketBase SDK for real-time subscriptions and auth.
 - **Backend** (`backend/`): PocketBase v0.39.0 with custom Go routes for task management, grading, and external API integration.
 - **CLI** (`cli/`): Go CLI tool (`fai`) for AI agents to create, list, update, submit, grade, and delete tasks. Both a binary and an importable library.
 
@@ -24,7 +24,7 @@ This monorepo consists of three packages:
 
 ```bash
 # Install frontend dependencies
-pnpm install
+cd frontend && pnpm install
 
 # (Optional) Copy environment variables
 cp .env.example .env.local
@@ -36,7 +36,7 @@ Both frontend and backend must run concurrently for full stack development:
 
 ```bash
 # Terminal 1: Frontend (port 5173)
-pnpm run dev
+cd frontend && pnpm run dev
 
 # Terminal 2: Backend (port 8090)
 cd backend && go run main.go
@@ -48,10 +48,10 @@ The dev server will automatically open your browser to `http://localhost:5173`.
 
 ```bash
 # Build frontend
-pnpm run build
+cd frontend && pnpm run build
 
 # Preview production build
-pnpm run preview
+cd frontend && pnpm run preview
 ```
 
 For production, run the PocketBase server with the production configuration (set `PB_ENCRYPTION_KEY` before first run to encrypt secrets at rest).
@@ -164,7 +164,7 @@ Priority for base URL resolution: `--base-url` flag > `FROMAI_BASE_URL` env var 
 - Svelte 5 runes mode (`$state`, `$derived`, etc.)
 - Client-side only (no SSR, no `+page.server.ts`)
 - Guard `localStorage` with `typeof window !== 'undefined'`
-- Use `PocketBaseClient` class from `src/lib/pocketbase.ts` — not raw fetch
+- Use `PocketBaseClient` class from `frontend/src/lib/pocketbase.ts` — not raw fetch
 - Auth token stored in localStorage as raw string (no "Bearer " prefix)
 - Monaco editor loaded from CDN, not bundled
 
