@@ -59,3 +59,14 @@ func Save(cfg *Config) error {
 	}
 	return nil
 }
+
+func Delete() error {
+	path, err := Path()
+	if err != nil {
+		return err
+	}
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to delete config: %w", err)
+	}
+	return nil
+}

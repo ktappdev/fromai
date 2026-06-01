@@ -358,6 +358,22 @@ var whoamiCmd = &cobra.Command{
 	},
 }
 
+var resetCmd = &cobra.Command{
+	Use:   "reset",
+	Short: "Delete the config file",
+	Long:  `Delete the config file at ~/.config/fromai/config.toml. Use to clear stored credentials and re-initialize cleanly.`,
+	Example: `  fai reset`,
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := config.Delete(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error deleting config: %v\n", err)
+			os.Exit(1)
+		}
+		path, _ := config.Path()
+		fmt.Printf("Config deleted from %s\n", path)
+		fmt.Println("Run 'fai init --key <your-api-key>' to re-initialize.")
+	},
+}
+
 func init() {
 	rootCmd.PersistentFlags().StringVar(&flagToken, "token", "", "PocketBase auth token (or set FROMAI_TOKEN env var)")
 	rootCmd.PersistentFlags().StringVar(&flagAPIKey, "api-key", "", "API key for X-API-Key header")
@@ -388,7 +404,7 @@ func init() {
 	initCmd.MarkFlagRequired("key")
 
 	taskCmd.AddCommand(createCmd, listCmd, getCmd, updateCmd, submitCmd, gradeCmd, deleteCmd, pollCmd)
-	rootCmd.AddCommand(taskCmd, initCmd, whoamiCmd)
+	rootCmd.AddCommand(taskCmd, initCmd, whoamiCmd, resetCmd)
 }
 
 func main() {
