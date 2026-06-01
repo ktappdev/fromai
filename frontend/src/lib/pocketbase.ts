@@ -180,6 +180,48 @@ export class PocketBaseClient {
 		return this.request('/api/me/stats');
 	}
 
+	async getTelegramStatus() {
+		const res = await fetch(`${getBaseURL()}/api/me/telegram/status`, {
+			headers: {
+				'Authorization': this.getAuthToken(),
+				'Content-Type': 'application/json',
+			},
+		});
+		if (!res.ok) {
+			if (res.status >= 500) throw new Error('Server error checking Telegram status');
+			return { connected: false, chat_id: '' };
+		}
+		return res.json();
+	}
+
+	async verifyTelegramCode(code: string) {
+		const res = await fetch(`${getBaseURL()}/api/me/telegram/verify`, {
+			method: 'POST',
+			headers: {
+				'Authorization': this.getAuthToken(),
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ code }),
+		});
+		if (!res.ok) {
+			const data = await res.json().catch(() => ({}));
+			throw new Error(data.message || 'Verification failed');
+		}
+		return res.json();
+	}
+
+	async unsubscribeTelegram() {
+		const res = await fetch(`${getBaseURL()}/api/telegram/unsubscribe`, {
+			method: 'POST',
+			headers: {
+				'Authorization': this.getAuthToken(),
+				'Content-Type': 'application/json',
+			},
+		});
+		if (!res.ok) throw new Error('Failed to unsubscribe');
+		return res.json();
+	}
+
 	async getTodayChallenge() {
 		try {
 			return await this.request('/api/challenges/today');

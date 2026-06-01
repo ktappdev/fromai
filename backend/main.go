@@ -215,6 +215,22 @@ func main() {
 			log.Printf("Warning: failed to seed daily challenges: %v", err)
 		}
 
+		// Ensure Telegram integration fields and collections
+		if err := ensureTelegramChatIDField(app); err != nil {
+			log.Printf("Warning: failed to ensure telegram_chat_id field: %v", err)
+		}
+		if err := ensureTelegramVerificationsCollection(app); err != nil {
+			log.Printf("Warning: failed to ensure telegram_verifications collection: %v", err)
+		}
+
+		// Start Telegram polling if token is configured
+		telegramBotToken := os.Getenv("TELEGRAM_BOT_TOKEN")
+		if telegramBotToken != "" {
+			startTelegramPolling(app, telegramBotToken)
+		} else {
+			log.Printf("TELEGRAM_BOT_TOKEN not set — Telegram notifications disabled")
+		}
+
 		// Custom Go routes for tasks (protected with auth)
 		se.Router.GET("/api/tasks", listTasksHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
 		se.Router.GET("/api/tasks/{id}", getTaskHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
@@ -236,6 +252,11 @@ func main() {
 		se.Router.GET("/api/challenges/today", todayChallengeHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
 		se.Router.GET("/api/challenges", listChallengesHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
 		se.Router.POST("/api/challenges/{id}/start", startChallengeHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
+
+		// Telegram verification routes
+		se.Router.GET("/api/me/telegram/status", telegramStatusHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
+		se.Router.POST("/api/me/telegram/verify", telegramVerifyHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
+		se.Router.POST("/api/telegram/unsubscribe", telegramUnsubscribeHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
 
 		// External LLM-facing routes (API-key auth)
 		se.Router.POST("/api/external/tasks", externalCreateTaskHandler(app))
@@ -472,6 +493,10 @@ func submitTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) erro
 					log.Printf("Warning: failed to evaluate badges: %v", err)
 				} else if len(newlyEarned) > 0 {
 					response["newly_earned_badges"] = newlyEarned
+					// Notify user of newly earned badges
+					for _, badgeID := range newlyEarned {
+						go notifyUser(app, user.Id, fmt.Sprintf("🏆 Badge earned: %s!", badgeID))
+					}
 				}
 				// Add streak info to response (post-modification values)
 				response["current_streak"] = stats.GetInt("current_streak")
@@ -523,6 +548,15 @@ func gradeTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) error
 			return err
 		}
 
+		// Notify user via Telegram
+		go func() {
+			title := record.GetString("title")
+			grade := record.GetString("grade")
+			feedback := record.GetString("feedback")
+			message := fmt.Sprintf("✅ Task graded: %s\nGrade: %s\n%s", title, grade, feedback)
+			notifyUser(app, user.Id, message)
+		}()
+
 		// Build base response with task data
 		response := record.PublicExport()
 
@@ -557,6 +591,10 @@ func gradeTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) error
 			log.Printf("Warning: failed to evaluate badges: %v", err)
 		} else if len(newlyEarned) > 0 {
 			response["newly_earned_badges"] = newlyEarned
+			// Notify user of newly earned badges
+			for _, badgeID := range newlyEarned {
+				go notifyUser(app, user.Id, fmt.Sprintf("🏆 Badge earned: %s!", badgeID))
+			}
 		}
 
 		return e.JSON(http.StatusOK, response)
@@ -686,6 +724,14 @@ func externalCreateTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEve
 			return err
 		}
 
+		// Notify user via Telegram
+		go func() {
+			title := record.GetString("title")
+			language := record.GetString("language")
+			message := fmt.Sprintf("📋 New task: %s (%s)\nOpen your dashboard to start working.", title, language)
+			notifyUser(app, userId, message)
+		}()
+
 		return e.JSON(http.StatusCreated, record.PublicExport())
 	}
 }
@@ -745,6 +791,15 @@ func externalGradeTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEven
 		// Get the task's user ID
 		userId := record.GetString("user")
 		if userId != "" {
+			// Notify user via Telegram
+			go func() {
+				title := record.GetString("title")
+				grade := record.GetString("grade")
+				feedback := record.GetString("feedback")
+				message := fmt.Sprintf("✅ Task graded: %s\nGrade: %s\n%s", title, grade, feedback)
+				notifyUser(app, userId, message)
+			}()
+
 			// Check if this task came from a daily challenge
 			completions, err := app.FindRecordsByFilter(
 				"challenge_completions",
@@ -776,6 +831,10 @@ func externalGradeTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEven
 				log.Printf("Warning: failed to evaluate badges: %v", err)
 			} else if len(newlyEarned) > 0 {
 				response["newly_earned_badges"] = newlyEarned
+				// Notify user of newly earned badges
+				for _, badgeID := range newlyEarned {
+					go notifyUser(app, userId, fmt.Sprintf("🏆 Badge earned: %s!", badgeID))
+				}
 			}
 		}
 

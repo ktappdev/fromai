@@ -7,6 +7,12 @@
 	let copied = $state(false);
 	let regenerating = $state(false);
 
+	let telegramStatus = $state<{ connected: boolean; chat_id: string } | null>(null);
+	let telegramCode = $state('');
+	let telegramLoading = $state(false);
+	let telegramError = $state('');
+	let telegramSuccess = $state('');
+
 	async function loadKey() {
 		try {
 			const key = await pb.getAPIKey();
@@ -40,18 +46,68 @@
 		setTimeout(() => (copied = false), 2000);
 	}
 
+	async function loadTelegramStatus() {
+		try {
+			const status = await pb.getTelegramStatus();
+			telegramStatus = status;
+		} catch (e) {
+			console.error('Failed to load Telegram status', e);
+		}
+	}
+
+	async function verifyTelegram() {
+		if (!telegramCode.trim()) return;
+		telegramLoading = true;
+		telegramError = '';
+		telegramSuccess = '';
+		try {
+			const result = await pb.verifyTelegramCode(telegramCode.trim());
+			telegramStatus = result;
+			telegramCode = '';
+			telegramSuccess = 'Telegram connected successfully!';
+			setTimeout(() => (telegramSuccess = ''), 3000);
+		} catch (e: any) {
+			telegramError = e.message || 'Verification failed';
+		} finally {
+			telegramLoading = false;
+		}
+	}
+
+	async function unsubscribeTelegram() {
+		telegramLoading = true;
+		telegramError = '';
+		telegramSuccess = '';
+		try {
+			await pb.unsubscribeTelegram();
+			telegramStatus = { connected: false, chat_id: '' };
+			telegramSuccess = 'Unsubscribed from Telegram notifications';
+			setTimeout(() => (telegramSuccess = ''), 3000);
+		} catch (e) {
+			telegramError = 'Failed to unsubscribe';
+		} finally {
+			telegramLoading = false;
+		}
+	}
+
 	onMount(async () => {
 		// Only redirect if no token exists (truly unauthenticated)
 		if (!pb.getAuthToken()) {
 			window.location.href = '/login';
 			return;
 		}
-		// Try to get user, but don't redirect on transient failures
-		const user = await pb.getMe();
-		if (user) {
-			loadKey();
-		} else {
-			loading = false;
+		// Verify session is valid
+		try {
+			const user = await pb.getMe();
+			if (user) {
+				loadKey();
+				loadTelegramStatus();
+			} else {
+				window.location.href = '/login';
+				return;
+			}
+		} catch {
+			window.location.href = '/login';
+			return;
 		}
 	});
 </script>
@@ -79,6 +135,54 @@
 						{regenerating ? 'Generating...' : 'Regenerate'}
 					</button>
 				</div>
+			</div>
+		{/if}
+	</div>
+
+	<div class="section">
+		<h3>Telegram Notifications</h3>
+		<p class="desc">
+			Receive task notifications via Telegram.
+			Open <code>@fromai_bot</code> on Telegram and click Start to get your verification code.
+		</p>
+
+		{#if telegramStatus === null}
+			<p class="muted">Loading...</p>
+		{:else if !telegramStatus.connected}
+			<div class="telegram-form">
+				<div class="input-row">
+					<span class="prompt">&gt; verification code</span>
+					<input
+						type="text"
+						placeholder="6-digit code"
+						bind:value={telegramCode}
+						maxlength="6"
+						disabled={telegramLoading}
+					/>
+					<button onclick={verifyTelegram} disabled={telegramLoading || !telegramCode.trim()}>
+						{telegramLoading ? 'Verifying...' : 'Verify'}
+					</button>
+				</div>
+				{#if telegramError}
+					<p class="error">{telegramError}</p>
+				{/if}
+				{#if telegramSuccess}
+					<p class="success">{telegramSuccess}</p>
+				{/if}
+			</div>
+		{:else}
+			<div class="telegram-connected">
+				<p class="status">Notifications active ✓</p>
+				<p class="chat-id">Chat ID: {telegramStatus.chat_id}</p>
+				<button onclick={unsubscribeTelegram} disabled={telegramLoading} class="danger">
+					{telegramLoading ? 'Unsubscribing...' : 'Unsubscribe'}
+				</button>
+				{#if telegramError}
+					<p class="error">{telegramError}</p>
+				{/if}
+				{#if telegramSuccess}
+					<p class="success">{telegramSuccess}</p>
+				{/if}
 			</div>
 		{/if}
 	</div>
@@ -181,5 +285,114 @@
 		background: #da3633;
 		border-color: #da3633;
 		color: white;
+	}
+
+	.telegram-form,
+	.telegram-connected {
+		margin-top: 8px;
+	}
+
+	.input-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex-wrap: wrap;
+	}
+
+	.prompt {
+		color: #238636;
+		font-size: 0.7rem;
+		flex-shrink: 0;
+	}
+
+	.input-row input {
+		background: #000;
+		color: #c9d1d9;
+		border: 1px solid #30363d;
+		padding: 5px 10px;
+		font-size: 0.7rem;
+		font-family: inherit;
+		width: 80px;
+		text-transform: uppercase;
+		letter-spacing: 1px;
+	}
+
+	.input-row input:focus {
+		outline: none;
+		border-color: #238636;
+	}
+
+	.input-row input:disabled {
+		opacity: 0.5;
+	}
+
+	.input-row button {
+		background: #238636;
+		color: white;
+		border: 1px solid #238636;
+		padding: 5px 12px;
+		font-size: 0.7rem;
+		cursor: pointer;
+		font-family: inherit;
+		transition: background 0.12s;
+	}
+
+	.input-row button:hover:not(:disabled) {
+		background: #2ea043;
+	}
+
+	.input-row button:disabled {
+		opacity: 0.5;
+		cursor: default;
+	}
+
+	.telegram-connected .status {
+		color: #238636;
+		font-size: 0.75rem;
+		margin: 0 0 4px;
+	}
+
+	.telegram-connected .chat-id {
+		color: #8b949e;
+		font-size: 0.7rem;
+		margin: 0 0 10px;
+	}
+
+	.telegram-connected button {
+		background: #1a1a1a;
+		color: #c9d1d9;
+		border: 1px solid #30363d;
+		padding: 5px 12px;
+		font-size: 0.7rem;
+		cursor: pointer;
+		font-family: inherit;
+		transition: background 0.12s;
+	}
+
+	.telegram-connected button:hover:not(:disabled) {
+		background: #30363d;
+	}
+
+	.telegram-connected button.danger:hover:not(:disabled) {
+		background: #da3633;
+		border-color: #da3633;
+		color: white;
+	}
+
+	.telegram-connected button:disabled {
+		opacity: 0.5;
+		cursor: default;
+	}
+
+	.error {
+		color: #da3633;
+		font-size: 0.7rem;
+		margin: 6px 0 0;
+	}
+
+	.success {
+		color: #238636;
+		font-size: 0.7rem;
+		margin: 6px 0 0;
 	}
 </style>
