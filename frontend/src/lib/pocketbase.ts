@@ -175,6 +175,34 @@ export class PocketBaseClient {
 			return null;
 		}
 	}
+
+	async getMyStats() {
+		return this.request('/api/me/stats');
+	}
+
+	async getTodayChallenge() {
+		try {
+			return await this.request('/api/challenges/today');
+		} catch {
+			return null;
+		}
+	}
+
+	async listChallenges() {
+		return this.request('/api/challenges');
+	}
+
+	async startChallenge(id: string) {
+		return this.request(`/api/challenges/${id}/start`, {
+			method: 'POST',
+		});
+	}
+
+	subscribeToUserStats(statsId: string, callback: (data: any) => void) {
+		return this.pb.collection('user_stats').subscribe(statsId, (e) => {
+			callback(e.record);
+		});
+	}
 }
 
 export const pb = new PocketBaseClient(client);

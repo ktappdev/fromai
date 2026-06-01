@@ -198,6 +198,23 @@ func main() {
 			log.Printf("Warning: failed to ensure api_key field: %v", err)
 		}
 
+		// Ensure gamification collections and fields
+		if err := ensureCompletedAtField(app); err != nil {
+			log.Printf("Warning: failed to ensure completed_at field: %v", err)
+		}
+		if err := ensureUserStatsCollection(app); err != nil {
+			log.Printf("Warning: failed to ensure user_stats collection: %v", err)
+		}
+		if err := ensureDailyChallengesCollection(app); err != nil {
+			log.Printf("Warning: failed to ensure daily_challenges collection: %v", err)
+		}
+		if err := ensureChallengeCompletionsCollection(app); err != nil {
+			log.Printf("Warning: failed to ensure challenge_completions collection: %v", err)
+		}
+		if err := seedDailyChallenges(app); err != nil {
+			log.Printf("Warning: failed to seed daily challenges: %v", err)
+		}
+
 		// Custom Go routes for tasks (protected with auth)
 		se.Router.GET("/api/tasks", listTasksHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
 		se.Router.GET("/api/tasks/{id}", getTaskHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
@@ -213,6 +230,12 @@ func main() {
 		// API key management (JWT auth only — user must be logged in to retrieve key)
 		se.Router.GET("/api/me/api-key", apiKeyHandler(app)).Bind(apis.RequireAuth())
 		se.Router.POST("/api/me/api-key", apiKeyHandler(app)).Bind(apis.RequireAuth())
+
+		// Gamification routes
+		se.Router.GET("/api/me/stats", meStatsHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
+		se.Router.GET("/api/challenges/today", todayChallengeHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
+		se.Router.GET("/api/challenges", listChallengesHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
+		se.Router.POST("/api/challenges/{id}/start", startChallengeHandler(app)).Bind(optionalAPIKeyAuth(app), apis.RequireAuth())
 
 		// External LLM-facing routes (API-key auth)
 		se.Router.POST("/api/external/tasks", externalCreateTaskHandler(app))
@@ -402,14 +425,61 @@ func submitTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) erro
 			return apis.NewNotFoundError("", nil)
 		}
 
+		// Idempotency check: skip gamification if already completed
+		wasAlreadyCompleted := record.GetString("status") == "completed"
+
 		record.Set("status", "completed")
 		record.Set("updated_at", time.Now().UnixMilli())
+
+		// Set completed_at only on first completion
+		if !wasAlreadyCompleted {
+			record.Set("completed_at", time.Now().UnixMilli())
+		}
 
 		if err := app.Save(record); err != nil {
 			return err
 		}
 
-		return e.JSON(http.StatusOK, record.PublicExport())
+		// Build base response with task data
+		response := record.PublicExport()
+
+		// Only run gamification on first completion
+		if !wasAlreadyCompleted {
+			// Get or create user stats
+			stats, err := getOrCreateUserStats(app, user.Id)
+			if err != nil {
+				log.Printf("Warning: failed to get/create user stats: %v", err)
+			} else {
+				// Increment total tasks
+				if err := incrementTotalTasks(stats); err != nil {
+					log.Printf("Warning: failed to increment total tasks: %v", err)
+				}
+				// Add language
+				if err := addLanguage(stats, record.GetString("language")); err != nil {
+					log.Printf("Warning: failed to add language: %v", err)
+				}
+				// Update streak
+				if err := updateStreak(stats); err != nil {
+					log.Printf("Warning: failed to update streak: %v", err)
+				}
+				// Save stats once after all modifications
+				if err := app.Save(stats); err != nil {
+					log.Printf("Warning: failed to save user stats: %v", err)
+				}
+				// Evaluate badges
+				newlyEarned, err := evaluateBadges(app, user.Id)
+				if err != nil {
+					log.Printf("Warning: failed to evaluate badges: %v", err)
+				} else if len(newlyEarned) > 0 {
+					response["newly_earned_badges"] = newlyEarned
+				}
+				// Add streak info to response (post-modification values)
+				response["current_streak"] = stats.GetInt("current_streak")
+				response["best_streak"] = stats.GetInt("best_streak")
+			}
+		}
+
+		return e.JSON(http.StatusOK, response)
 	}
 }
 
@@ -453,7 +523,43 @@ func gradeTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) error
 			return err
 		}
 
-		return e.JSON(http.StatusOK, record.PublicExport())
+		// Build base response with task data
+		response := record.PublicExport()
+
+		// Check if this task came from a daily challenge
+		completions, err := app.FindRecordsByFilter(
+			"challenge_completions",
+			"task = {:taskId}",
+			"",
+			1,
+			0,
+			map[string]any{"taskId": record.Id},
+		)
+		if err == nil && len(completions) > 0 {
+			// Update the challenge completion with grade and feedback
+			completion := completions[0]
+			if grade, ok := data["grade"]; ok {
+				completion.Set("grade", grade)
+			}
+			if feedback, ok := data["feedback"]; ok {
+				completion.Set("feedback", feedback)
+			}
+			// Mark challenge as completed
+			completion.Set("completed_at", time.Now().UTC().Format("2006-01-02"))
+			if err := app.Save(completion); err != nil {
+				log.Printf("Warning: failed to update challenge completion: %v", err)
+			}
+		}
+
+		// Re-evaluate badges in case grade-dependent badges are earned
+		newlyEarned, err := evaluateBadges(app, user.Id)
+		if err != nil {
+			log.Printf("Warning: failed to evaluate badges: %v", err)
+		} else if len(newlyEarned) > 0 {
+			response["newly_earned_badges"] = newlyEarned
+		}
+
+		return e.JSON(http.StatusOK, response)
 	}
 }
 
@@ -633,7 +739,47 @@ func externalGradeTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEven
 			return err
 		}
 
-		return e.JSON(http.StatusOK, record.PublicExport())
+		// Build base response with task data
+		response := record.PublicExport()
+
+		// Get the task's user ID
+		userId := record.GetString("user")
+		if userId != "" {
+			// Check if this task came from a daily challenge
+			completions, err := app.FindRecordsByFilter(
+				"challenge_completions",
+				"task = {:taskId}",
+				"",
+				1,
+				0,
+				map[string]any{"taskId": record.Id},
+			)
+			if err == nil && len(completions) > 0 {
+				// Update the challenge completion with grade and feedback
+				completion := completions[0]
+				if grade, ok := data["grade"]; ok {
+					completion.Set("grade", grade)
+				}
+				if feedback, ok := data["feedback"]; ok {
+					completion.Set("feedback", feedback)
+				}
+				// Mark challenge as completed
+				completion.Set("completed_at", time.Now().UTC().Format("2006-01-02"))
+				if err := app.Save(completion); err != nil {
+					log.Printf("Warning: failed to update challenge completion: %v", err)
+				}
+			}
+
+			// Re-evaluate badges in case grade-dependent badges are earned
+			newlyEarned, err := evaluateBadges(app, userId)
+			if err != nil {
+				log.Printf("Warning: failed to evaluate badges: %v", err)
+			} else if len(newlyEarned) > 0 {
+				response["newly_earned_badges"] = newlyEarned
+			}
+		}
+
+		return e.JSON(http.StatusOK, response)
 	}
 }
 

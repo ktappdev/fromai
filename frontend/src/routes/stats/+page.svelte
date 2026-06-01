@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { pb } from '$lib/pocketbase.js';
+	import { BADGE_CATALOG } from '$lib/gamification.js';
 	import { onMount } from 'svelte';
 
 	let tasks = $state<any[]>([]);
+	let userStats = $state<any>(null);
 	let loading = $state(true);
 	let error = $state('');
 
@@ -12,12 +14,58 @@
 			return;
 		}
 		try {
-			tasks = await pb.listTasks();
+			const [tasksData, statsData] = await Promise.all([
+				pb.listTasks(),
+				pb.getMyStats()
+			]);
+			tasks = tasksData;
+			userStats = statsData;
 		} catch (e) {
-			error = 'Failed to load tasks';
+			error = 'Failed to load data';
 		} finally {
 			loading = false;
 		}
+	});
+
+	const currentStreak = $derived(userStats?.current_streak ?? 0);
+	const bestStreak = $derived(userStats?.best_streak ?? 0);
+	const earnedBadgeCount = $derived((userStats?.badges ?? []).length);
+
+	const heatmapWeeks = $derived(() => {
+		const dateCounts: Record<string, number> = {};
+		tasks.filter(t => t.status === 'completed' && t.completed_at).forEach(t => {
+			const d = new Date(t.completed_at).toISOString().slice(0, 10);
+			dateCounts[d] = (dateCounts[d] || 0) + 1;
+		});
+
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+
+		const startDate = new Date(today);
+		startDate.setDate(startDate.getDate() - 89);
+
+		const dayOfWeek = startDate.getDay();
+		const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+		startDate.setDate(startDate.getDate() + mondayOffset);
+
+		const weeks = [];
+		const cursor = new Date(startDate);
+		const end = new Date(today);
+
+		while (cursor <= end) {
+			const week = [];
+			for (let i = 0; i < 7; i++) {
+				const key = cursor.toISOString().slice(0, 10);
+				const count = dateCounts[key] || 0;
+				const level = count === 0 ? 0 : count === 1 ? 1 : count <= 3 ? 2 : 3;
+				const label = count === 0 ? '' : `${count} completion${count !== 1 ? 's' : ''}`;
+				week.push({ date: key, count, level, label });
+				cursor.setDate(cursor.getDate() + 1);
+			}
+			weeks.push(week);
+		}
+
+		return weeks;
 	});
 
 	const pending = $derived(tasks.filter(t => t.status !== 'completed').length);
@@ -87,6 +135,70 @@
 	{:else if error}
 		<p class="error">{error}</p>
 	{:else}
+		<!-- Streak -->
+		<section class="section">
+			<h2>$ Streak</h2>
+			<div class="streak-row">
+				<span class="streak-fire">🔥</span>
+				<span class="streak-value">{currentStreak} day{currentStreak !== 1 ? 's' : ''}</span>
+			</div>
+			<div class="stat-row">
+				<span class="label">best streak</span>
+				<span class="value">{bestStreak} day{bestStreak !== 1 ? 's' : ''}</span>
+			</div>
+		</section>
+
+		<!-- Activity Heatmap -->
+		<section class="section">
+			<h2>$ Activity</h2>
+			{#if tasks.filter(t => t.status === 'completed').length === 0}
+				<p class="empty">No completed tasks yet</p>
+			{:else}
+				<div class="heatmap">
+					<div class="heatmap-labels">
+						<span>Mon</span>
+						<span></span>
+						<span>Wed</span>
+						<span></span>
+						<span>Fri</span>
+						<span></span>
+						<span>Sun</span>
+					</div>
+					<div class="heatmap-grid">
+						{#each heatmapWeeks() as week}
+							<div class="heatmap-week">
+								{#each week as day}
+									<div
+										class="heatmap-cell level-{day.level}"
+										title="{day.date}: {day.label || 'no activity'}"
+									></div>
+								{/each}
+							</div>
+						{/each}
+					</div>
+				</div>
+				<div class="heatmap-legend">
+					<span class="legend-label">Less</span>
+					<span class="legend-cell level-0"></span>
+					<span class="legend-cell level-1"></span>
+					<span class="legend-cell level-2"></span>
+					<span class="legend-cell level-3"></span>
+					<span class="legend-label">More</span>
+				</div>
+			{/if}
+		</section>
+
+		<!-- Badges -->
+		<section class="section">
+			<h2>$ Badges</h2>
+			<div class="stat-row">
+				<span class="label">earned</span>
+				<span class="value">
+					<a href="/badges" class="badge-link">{earnedBadgeCount} / {BADGE_CATALOG.length}</a>
+				</span>
+			</div>
+		</section>
+
 		<!-- Overview -->
 		<section class="section">
 			<h2>$ Overview</h2>
@@ -249,6 +361,104 @@
 		color: #e2e8f0;
 		width: 20px;
 		text-align: right;
+	}
+
+	.streak-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-bottom: 6px;
+	}
+
+	.streak-fire {
+		font-size: 1.2rem;
+	}
+
+	.streak-value {
+		font-size: 0.85rem;
+		color: #e2e8f0;
+		font-weight: 600;
+	}
+
+	.heatmap {
+		display: flex;
+		gap: 6px;
+		overflow-x: auto;
+		padding-bottom: 4px;
+	}
+
+	.heatmap-labels {
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-start;
+		gap: 2px;
+		padding-top: 0;
+	}
+
+	.heatmap-labels span {
+		font-size: 0.55rem;
+		color: #8b949e;
+		line-height: 10px;
+		height: 10px;
+		display: flex;
+		align-items: center;
+	}
+
+	.heatmap-grid {
+		display: flex;
+		gap: 2px;
+	}
+
+	.heatmap-week {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.heatmap-cell {
+		width: 10px;
+		height: 10px;
+		border-radius: 1px;
+	}
+
+	.heatmap-cell.level-0 { background: #161b22; }
+	.heatmap-cell.level-1 { background: #0e4429; }
+	.heatmap-cell.level-2 { background: #006d32; }
+	.heatmap-cell.level-3 { background: #26a641; }
+
+	.heatmap-legend {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		margin-top: 8px;
+		justify-content: flex-end;
+	}
+
+	.legend-label {
+		font-size: 0.6rem;
+		color: #8b949e;
+	}
+
+	.legend-cell {
+		width: 10px;
+		height: 10px;
+		border-radius: 1px;
+		display: inline-block;
+	}
+
+	.legend-cell.level-0 { background: #161b22; border: 1px solid #21262d; }
+	.legend-cell.level-1 { background: #0e4429; }
+	.legend-cell.level-2 { background: #006d32; }
+	.legend-cell.level-3 { background: #26a641; }
+
+	.badge-link {
+		color: #58a6ff;
+		text-decoration: none;
+		font-size: 0.8rem;
+	}
+
+	.badge-link:hover {
+		text-decoration: underline;
 	}
 
 	.task-row {

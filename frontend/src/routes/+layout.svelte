@@ -4,12 +4,20 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
+	import BadgeToast from '$lib/components/BadgeToast.svelte';
+	import { getBadgeDef, type BadgeDef } from '$lib/gamification.js';
 
 	let { children } = $props();
 
 	let user = $state<any>(null);
 	let tasks = $state<any[]>([]);
 	let loading = $state(true);
+
+	// Toast state
+	let toastQueue = $state<BadgeDef[]>([]);
+	let currentToast = $state<BadgeDef | null>(null);
+	let baselineBadgeIds = $state<Set<string>>(new Set());
+	let userStatsId = $state<string | null>(null);
 
 	async function loadData() {
 		try {
@@ -68,6 +76,71 @@
 			if (unsub) unsub();
 		};
 	});
+
+	// Load stats and subscribe to badge updates
+	$effect(() => {
+		if (!user) return;
+
+		let unsub: (() => Promise<void>) | null = null;
+		let subPromise: Promise<(() => Promise<void>)> | null = null;
+
+		pb.getMyStats()
+			.then((stats: any) => {
+				if (stats && stats.id) {
+					userStatsId = stats.id;
+					// Store initial badge IDs as baseline
+					if (stats.badges && Array.isArray(stats.badges)) {
+						baselineBadgeIds = new Set(stats.badges);
+					}
+
+					// Subscribe to user_stats for real-time badge updates
+					subPromise = pb.subscribeToUserStats(stats.id, (updatedStats: any) => {
+						if (updatedStats.badges && Array.isArray(updatedStats.badges)) {
+							const newBadges = updatedStats.badges.filter(
+								(id: string) => !baselineBadgeIds.has(id)
+							);
+							if (newBadges.length > 0) {
+								// Add new badges to toast queue
+								newBadges.forEach((badgeId: string) => {
+									const def = getBadgeDef(badgeId);
+									if (def) {
+										toastQueue = [...toastQueue, def];
+									}
+								});
+								// Update baseline
+								baselineBadgeIds = new Set(updatedStats.badges);
+							}
+						}
+					});
+					subPromise.then((u) => {
+						unsub = u;
+					});
+				}
+			})
+			.catch((err) => {
+				console.error('Failed to load stats:', err);
+			});
+
+		return () => {
+			if (subPromise) {
+				subPromise.then((u) => u?.());
+			} else if (unsub) {
+				unsub();
+			}
+		};
+	});
+
+	// Toast queue cycling
+	$effect(() => {
+		if (toastQueue.length > 0 && !currentToast) {
+			currentToast = toastQueue[0];
+			toastQueue = toastQueue.slice(1);
+		}
+	});
+
+	function handleToastDismiss() {
+		currentToast = null;
+	}
 
 	function getInitials(u: any): string {
 		if (u.name) {
@@ -198,6 +271,10 @@
 					<span class="settings-icon">∑</span>
 					Stats
 				</a>
+				<a href="/badges" class="settings-link">
+					<span class="settings-icon">🏆</span>
+					Badges
+				</a>
 				<a href="/settings" class="settings-link">
 					<span class="settings-icon">⚙</span>
 					Settings
@@ -220,6 +297,10 @@
 			</div>
 		</div>
 	</main>
+
+	{#if currentToast}
+		<BadgeToast badge={currentToast} visible={true} onDismiss={handleToastDismiss} />
+	{/if}
 </div>
 
 <style>

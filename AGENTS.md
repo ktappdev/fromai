@@ -134,9 +134,48 @@ API keys are auto-generated on signup and can be regenerated from the settings p
 
 See `cli/README.md` for full reference.
 
+## Project Structure
+
+```
+fromai/
+├── frontend/              # SvelteKit app (adapter-node)
+│   ├── src/               # Source code
+│   ├── static/            # Static assets
+│   ├── package.json       # Frontend deps
+│   └── ecosystem.config.js (root)
+├── backend/               # PocketBase v0.39.0
+│   ├── main.go            # Go server + custom routes
+│   ├── pb_data/           # SQLite database
+│   └── ecosystem.config.js
+├── cli/                   # Go CLI (fai)
+├── Caddyfile              # Reverse proxy config
+└── docs...                # AGENTS.md, README.md, etc.
+```
+
+## Deployment
+
+### PM2 (separate configs)
+
+```bash
+# Frontend (from project root)
+cd frontend && pnpm run build && cd ..
+pm2 start ecosystem.config.js
+
+# Backend
+cd backend && go build -o pocketbase main.go
+pm2 start ecosystem.config.js
+```
+
+Both configs set env vars with placeholders — fill in secrets before deploying:
+- `PB_ENCRYPTION_KEY`, `PUBLIC_URL`, `EXTERNAL_API_KEY` in `backend/ecosystem.config.js`
+
+### Caddy
+
+Reverse proxy routes `/api/*` → PocketBase `:8090`, everything else → frontend `:5173`. Change `:80` to your domain for auto-TLS.
+
 ## User Preferences
 
-- **DO NOT auto-run**: Never run `pnpm run dev`, `go run`, or similar. User starts things manually.
+- **DO NOT auto-run**: Never run `pnpm run dev`, `go run`, `pm2 start`, or similar. User starts things manually.
 - **Keep changes minimal**: Surgical edits only — don't refactor unrelated code
 - **Simplicity first**: If a simpler approach exists, suggest it before implementing
 - **Verify typecheck**: Run `cd frontend && pnpm run check` after TypeScript changes
