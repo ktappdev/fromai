@@ -80,7 +80,7 @@ fai task poll <task-id> --interval 2s --timeout 5m
 
 - `--api-key` - PocketBase API key (recommended, doesn't expire)
 - `--token` - PocketBase auth token (expires after 120h)
-- `--base-url` - Base URL (default: http://127.0.0.1:8090)
+- `--base-url` - Base URL (default: https://fromai-backend.lyricut.com)
 - `--json` - Output as raw JSON
 
 ## Library Usage (for AI agents)
@@ -96,7 +96,7 @@ import (
 )
 
 func main() {
-    c := client.NewClient("http://127.0.0.1:8090", "")
+    c := client.NewClient("https://fromai-backend.lyricut.com", "")
     c.SetAPIKey("your-api-key")
 
     // List tasks

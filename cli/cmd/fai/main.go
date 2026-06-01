@@ -37,12 +37,12 @@ func resolveClient() *client.Client {
 
 	// Resolve base URL: flag > env var > config file > default
 	baseURL := flagBaseURL
-	if baseURL == "http://127.0.0.1:8090" {
+	if baseURL == "https://fromai-backend.lyricut.com" {
 		if envURL := os.Getenv("FROMAI_BASE_URL"); envURL != "" {
 			baseURL = envURL
 		}
 	}
-	if baseURL == "http://127.0.0.1:8090" {
+	if baseURL == "https://fromai-backend.lyricut.com" {
 		cfg, err := config.Load()
 		if err == nil && cfg.BaseURL != "" {
 			baseURL = cfg.BaseURL
@@ -361,7 +361,7 @@ var whoamiCmd = &cobra.Command{
 func init() {
 	rootCmd.PersistentFlags().StringVar(&flagToken, "token", "", "PocketBase auth token (or set FROMAI_TOKEN env var)")
 	rootCmd.PersistentFlags().StringVar(&flagAPIKey, "api-key", "", "API key for X-API-Key header")
-	rootCmd.PersistentFlags().StringVar(&flagBaseURL, "base-url", "http://127.0.0.1:8090", "Base URL (default: $FROMAI_BASE_URL or http://127.0.0.1:8090)")
+	rootCmd.PersistentFlags().StringVar(&flagBaseURL, "base-url", "https://fromai-backend.lyricut.com", "Base URL (default: $FROMAI_BASE_URL or https://fromai-backend.lyricut.com)")
 	rootCmd.PersistentFlags().BoolVar(&flagJSON, "json", false, "Output as raw JSON")
 
 	createCmd.Flags().String("title", "", "Task title (required)")
