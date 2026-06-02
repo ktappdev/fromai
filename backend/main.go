@@ -464,7 +464,24 @@ func createTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) erro
 		go func() {
 			title := record.GetString("title")
 			language := record.GetString("language")
-			message := fmt.Sprintf("📋 New task: %s (%s)\nOpen your dashboard to start working.", title, language)
+			taskID := record.GetString("id")
+			description := record.GetString("description")
+			publicURL := os.Getenv("PUBLIC_URL")
+
+			// Truncate description to 100 chars if longer
+			if len(description) > 100 {
+				description = description[:100] + "..."
+			}
+
+			// Build richer message
+			message := fmt.Sprintf("📋 New task: %s\nLanguage: %s\nID: %s", title, language, taskID)
+			if description != "" {
+				message += fmt.Sprintf("\n%s", description)
+			}
+			if publicURL != "" {
+				message += fmt.Sprintf("\n🔗 %s/%s", publicURL, taskID)
+			}
+
 			notifyUser(app, user.Id, message)
 		}()
 
@@ -818,7 +835,24 @@ func externalCreateTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEve
 		go func() {
 			title := record.GetString("title")
 			language := record.GetString("language")
-			message := fmt.Sprintf("📋 New task: %s (%s)\nOpen your dashboard to start working.", title, language)
+			taskID := record.GetString("id")
+			description := record.GetString("description")
+			publicURL := os.Getenv("PUBLIC_URL")
+
+			// Truncate description to 100 chars if longer
+			if len(description) > 100 {
+				description = description[:100] + "..."
+			}
+
+			// Build richer message
+			message := fmt.Sprintf("📋 New task: %s\nLanguage: %s\nID: %s", title, language, taskID)
+			if description != "" {
+				message += fmt.Sprintf("\n%s", description)
+			}
+			if publicURL != "" {
+				message += fmt.Sprintf("\n🔗 %s/%s", publicURL, taskID)
+			}
+
 			notifyUser(app, userId, message)
 		}()
 

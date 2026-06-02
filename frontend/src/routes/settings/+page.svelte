@@ -12,6 +12,7 @@
 	let telegramLoading = $state(false);
 	let telegramError = $state('');
 	let telegramSuccess = $state('');
+	let skillCopied = $state(false);
 
 	async function loadKey() {
 		try {
@@ -190,6 +191,20 @@
 				{/if}
 			</div>
 		{/if}
+	</div>
+
+	<div class="section">
+		<h3>AI Agent Skill</h3>
+		<p class="desc">
+			Download the fromai skill file for your AI agent. The agent uses this to create well-scoped tasks with appropriate difficulty. Place it where your agent looks for skills:
+			<code>Claude Code</code> → <code>.claude/skills/</code> · <code>Cursor</code> → <code>.cursor/rules/</code> · <code>Copilot</code> → <code>.github/copilot-instructions.md</code>
+		</p>
+		<div class="skill-download">
+			<code class="skill-cmd">curl -O https://raw.githubusercontent.com/ktappdev/fromai/main/skills/fromai/SKILL.md</code>
+			<button onclick={() => { navigator.clipboard.writeText('curl -O https://raw.githubusercontent.com/ktappdev/fromai/main/skills/fromai/SKILL.md'); skillCopied = true; setTimeout(() => skillCopied = false, 2000); }} class="copy-btn">
+				{skillCopied ? '✓ Copied' : 'Copy'}
+			</button>
+		</div>
 	</div>
 </div>
 
@@ -399,5 +414,41 @@
 		color: #238636;
 		font-size: 0.7rem;
 		margin: 6px 0 0;
+	}
+
+	.skill-download {
+		display: flex;
+		align-items: flex-start;
+		gap: 10px;
+		flex-wrap: wrap;
+	}
+
+	.skill-cmd {
+		flex: 1;
+		min-width: 0;
+		background: #000;
+		color: #c9d1d9;
+		padding: 8px 10px;
+		font-size: 0.65rem;
+		border: 1px solid #1a1a1a;
+		word-break: break-all;
+		line-height: 1.5;
+	}
+
+	.copy-btn {
+		background: #1a1a1a;
+		color: #c9d1d9;
+		border: 1px solid #30363d;
+		padding: 6px 12px;
+		font-size: 0.7rem;
+		cursor: pointer;
+		font-family: inherit;
+		transition: background 0.12s;
+		flex-shrink: 0;
+		white-space: nowrap;
+	}
+
+	.copy-btn:hover {
+		background: #30363d;
 	}
 </style>

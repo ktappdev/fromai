@@ -105,6 +105,59 @@ Good tasks are also:
 - **Self-contained**: No external dependencies beyond standard libraries
 - **Well-started**: Provide useful starter code or clear description
 
+## Task Difficulty
+
+**The agent determines difficulty — not the user.** No CLI flag needed. Adjust task complexity through description detail, starter code scope, and problem constraints.
+
+### Checking User Level
+
+Before creating a task, check the user's history:
+
+```bash
+fai task list --json
+```
+
+Count completed tasks and scan recent grades. For deeper stats:
+
+```bash
+# Available via /api/me/stats — total_tasks_completed, current_streak, badges
+```
+
+### Difficulty Scale
+
+**Start easy. Ramp up only when the user proves ready.**
+
+| Completed Tasks | Difficulty |
+|-----------------|------------|
+| 0-2 | easy |
+| 3-9, no recent fails | medium |
+| 10+, strong history | hard |
+
+**Drop on failure:** If last 2 tasks graded D or F, drop one level. If already at easy, keep easy but reduce scope (smaller function, clearer signature, more hints in starter code).
+
+### Task Design by Level
+
+**Easy:**
+- Single function with clear signature
+- Well-defined input/output
+- Under 30 lines expected
+- No external dependencies
+- Starter code provides function shell or clear template
+
+**Medium:**
+- Multiple functions or a small class
+- Some design decisions required
+- Error handling expected
+- 30-80 lines expected
+- Starter code gives entry point but leaves design open
+
+**Hard:**
+- Multi-file or architectural scope
+- Multiple edge cases to handle
+- Performance or memory considerations
+- 80+ lines expected
+- Starter code is minimal — describes interface but leaves implementation entirely open
+
 ## Starter Code Scope Rule
 
 **Send the entire relevant block, not a cherry-picked snippet.** The human can only see what you give them. If you send one link and the task says "all links," they'll do one link.
