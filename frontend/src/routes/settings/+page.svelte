@@ -148,7 +148,7 @@
 		<h3>Telegram Notifications</h3>
 		<p class="desc">
 			Receive task notifications via Telegram.
-			Open <code>@fromai_bot</code> on Telegram and click Start to get your verification code.
+			Open <code>@official_faibot</code> on Telegram and click Start to get your verification code.
 		</p>
 
 		{#if telegramStatus === null}
