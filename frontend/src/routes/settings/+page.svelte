@@ -90,6 +90,21 @@
 		}
 	}
 
+	async function downloadSkill() {
+		try {
+			const res = await fetch('https://raw.githubusercontent.com/ktappdev/fromai/main/skills/fromai/SKILL.md');
+			const blob = await res.blob();
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = 'SKILL.md';
+			a.click();
+			URL.revokeObjectURL(url);
+		} catch (e) {
+			console.error('Download failed', e);
+		}
+	}
+
 	onMount(async () => {
 		console.log('[Settings] onMount - auth check starting');
 		const token = pb.getAuthToken();
@@ -200,6 +215,8 @@
 			<code>Claude Code</code> → <code>.claude/skills/</code> · <code>Cursor</code> → <code>.cursor/rules/</code> · <code>Copilot</code> → <code>.github/copilot-instructions.md</code>
 		</p>
 		<div class="skill-download">
+			<button onclick={downloadSkill} class="download-btn">⬇ Download SKILL.md</button>
+			<span class="or-divider">or</span>
 			<code class="skill-cmd">curl -O https://raw.githubusercontent.com/ktappdev/fromai/main/skills/fromai/SKILL.md</code>
 			<button onclick={() => { navigator.clipboard.writeText('curl -O https://raw.githubusercontent.com/ktappdev/fromai/main/skills/fromai/SKILL.md'); skillCopied = true; setTimeout(() => skillCopied = false, 2000); }} class="copy-btn">
 				{skillCopied ? '✓ Copied' : 'Copy'}
@@ -418,9 +435,32 @@
 
 	.skill-download {
 		display: flex;
-		align-items: flex-start;
+		align-items: center;
 		gap: 10px;
 		flex-wrap: wrap;
+	}
+
+	.download-btn {
+		background: #238636;
+		color: #000;
+		text-decoration: none;
+		padding: 6px 14px;
+		font-size: 0.7rem;
+		font-weight: 600;
+		font-family: inherit;
+		cursor: pointer;
+		transition: background 0.15s;
+		flex-shrink: 0;
+		white-space: nowrap;
+	}
+
+	.download-btn:hover {
+		background: #2ea043;
+	}
+
+	.or-divider {
+		color: #484f58;
+		font-size: 0.65rem;
 	}
 
 	.skill-cmd {
