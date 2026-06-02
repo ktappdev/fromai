@@ -79,6 +79,83 @@ func ensureAPIKeyField(app *pocketbase.PocketBase) error {
 	return app.SaveNoValidate(collection)
 }
 
+func ensureTasksCollection(app *pocketbase.PocketBase) error {
+	if _, err := app.FindCollectionByNameOrId("tasks"); err == nil {
+		return nil
+	}
+
+	collection := core.NewCollection("tasks", "tasks")
+	collection.ListRule = types.Pointer("user = @request.auth.id")
+	collection.ViewRule = types.Pointer("user = @request.auth.id")
+	collection.CreateRule = types.Pointer("user = @request.auth.id")
+	collection.UpdateRule = types.Pointer("user = @request.auth.id")
+
+	collection.Fields.Add(&core.TextField{
+		Name:     "title",
+		Required: true,
+	})
+	collection.Fields.Add(&core.TextField{
+		Name:       "description",
+		Required:   false,
+		Presentable: false,
+	})
+	collection.Fields.Add(&core.TextField{
+		Name:       "starter_code",
+		Required:   true,
+		Presentable: false,
+	})
+	collection.Fields.Add(&core.TextField{
+		Name:       "code",
+		Required:   true,
+		Presentable: false,
+	})
+	collection.Fields.Add(&core.TextField{
+		Name:     "language",
+		Required: true,
+	})
+	collection.Fields.Add(&core.TextField{
+		Name:     "status",
+		Required: true,
+	})
+	collection.Fields.Add(&core.BoolField{
+		Name:     "archived",
+		Required: false,
+	})
+	collection.Fields.Add(&core.RelationField{
+		Name:        "user",
+		MaxSelect:   1,
+		Presentable: false,
+		Required:    true,
+		CollectionId: "", // Will be set to users collection ID
+	})
+	collection.Fields.Add(&core.NumberField{
+		Name:     "created_at",
+		Required: true,
+	})
+	collection.Fields.Add(&core.NumberField{
+		Name:     "updated_at",
+		Required: true,
+	})
+
+	if err := app.SaveNoValidate(collection); err != nil {
+		return err
+	}
+
+	// Set the relation to users collection after creation
+	usersCollection, err := app.FindCollectionByNameOrId("users")
+	if err != nil {
+		return err
+	}
+	collection, _ = app.FindCollectionByNameOrId("tasks")
+	for _, field := range collection.Fields {
+		if relField, ok := field.(*core.RelationField); ok && relField.GetName() == "user" {
+			relField.CollectionId = usersCollection.Id
+			break
+		}
+	}
+	return app.SaveNoValidate(collection)
+}
+
 func generateAPIKey() (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
@@ -183,6 +260,11 @@ func main() {
 	})
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
+		// Ensure tasks collection exists
+		if err := ensureTasksCollection(app); err != nil {
+			log.Printf("Warning: failed to ensure tasks collection: %v", err)
+		}
+
 		// Ensure tasks collection rules allow owner-scoped realtime subscriptions
 		if err := ensureTaskRules(app); err != nil {
 			log.Printf("Warning: failed to ensure tasks rules: %v", err)
