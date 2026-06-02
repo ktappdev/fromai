@@ -46,7 +46,8 @@ export class PocketBaseClient {
 		try {
 			const data = await this.pb.collection('users').authRefresh();
 			return data.record;
-		} catch {
+		} catch (e: any) {
+			console.error('[getMe] authRefresh failed:', e?.status, e?.message, e?.url);
 			return null;
 		}
 	}

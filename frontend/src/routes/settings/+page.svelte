@@ -101,23 +101,18 @@
 			return;
 		}
 
-		// Verify session is valid
+		// Always try to load settings data if token exists (token may still be valid for API calls even if authRefresh fails)
+		console.log('[Settings] loading settings data (API key and Telegram status)');
+		loadKey();
+		loadTelegramStatus();
+
+		// Verify session is valid for logging/debugging purposes
 		try {
 			console.log('[Settings] calling getMe()');
 			const user = await pb.getMe();
 			console.log('[Settings] getMe result:', user ? 'user found' : 'user is null');
-
-			if (user) {
-				console.log('[Settings] user authenticated, loading settings data');
-				loadKey();
-				loadTelegramStatus();
-			} else {
-				console.log('[Settings] user is null, not loading settings data');
-				loading = false;
-			}
 		} catch (e) {
-			console.error('[Settings] getMe failed, not loading settings data:', e);
-			loading = false;
+			console.error('[Settings] getMe failed (settings data may still load):', e);
 		}
 	});
 </script>
