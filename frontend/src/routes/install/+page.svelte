@@ -121,7 +121,7 @@
 				{copied === 'init' ? '✓' : '📋'}
 			</button>
 		</div>
-		<p class="note">Get your API key from the <a href="/settings">Settings</a> page.</p>
+		<p class="note">Get your API key → <a href="/settings">Settings</a></p>
 		<div class="code-block">
 			<span class="prompt">$</span>
 			<code>fai whoami</code>
@@ -225,7 +225,7 @@
 	}
 
 	.note {
-		color: #6e7681;
+		color: #8b949e;
 		font-size: 0.7rem;
 		margin: 10px 0 0 0;
 	}

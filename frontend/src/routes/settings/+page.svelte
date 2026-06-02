@@ -142,6 +142,7 @@
 			Use this key with the fromai CLI to authenticate from the terminal.
 			Run <code>fai init --key &lt;key&gt;</code> to set it up.
 		</p>
+		<p class="cross-link">Need to install the CLI first? <a href="/install">Install CLI →</a></p>
 
 		{#if loading}
 			<p class="muted">Loading...</p>
@@ -211,7 +212,7 @@
 	<div class="section">
 		<h3>AI Agent Skill</h3>
 		<p class="desc">
-			Download the fromai skill file for your AI agent. The agent uses this to create well-scoped tasks with appropriate difficulty. Place it where your agent looks for skills:
+			<span class="required">REQUIRED</span> — Download the fromai skill file for your AI agent. This is required. Without it, the AI agent won't know how to scope tasks or determine difficulty. Place it where your agent looks for skills:
 			<code>Claude Code</code> → <code>.claude/skills/</code> · <code>Cursor</code> → <code>.cursor/rules/</code> · <code>Copilot</code> → <code>.github/copilot-instructions.md</code>
 		</p>
 		<div class="skill-download">
@@ -308,6 +309,26 @@
 		background: #1a1a1a;
 		padding: 1px 5px;
 		font-size: 0.7rem;
+	}
+
+	.desc .required {
+		color: #da3633;
+		font-weight: 600;
+	}
+
+	.cross-link {
+		color: #8b949e;
+		font-size: 0.7rem;
+		margin: 0 0 14px;
+	}
+
+	.cross-link a {
+		color: #3fb950;
+		text-decoration: none;
+	}
+
+	.cross-link a:hover {
+		text-decoration: underline;
 	}
 
 	.muted {
