@@ -90,24 +90,34 @@
 	}
 
 	onMount(async () => {
-		// Only redirect if no token exists (truly unauthenticated)
-		if (!pb.getAuthToken()) {
-			window.location.href = '/login';
+		console.log('[Settings] onMount - auth check starting');
+		const token = pb.getAuthToken();
+		console.log('[Settings] token present:', !!token);
+
+		// Skip auth check if no token exists (truly unauthenticated)
+		if (!token) {
+			console.log('[Settings] no token, skipping settings load');
+			loading = false;
 			return;
 		}
+
 		// Verify session is valid
 		try {
+			console.log('[Settings] calling getMe()');
 			const user = await pb.getMe();
+			console.log('[Settings] getMe result:', user ? 'user found' : 'user is null');
+
 			if (user) {
+				console.log('[Settings] user authenticated, loading settings data');
 				loadKey();
 				loadTelegramStatus();
 			} else {
-				window.location.href = '/login';
-				return;
+				console.log('[Settings] user is null, not loading settings data');
+				loading = false;
 			}
-		} catch {
-			window.location.href = '/login';
-			return;
+		} catch (e) {
+			console.error('[Settings] getMe failed, not loading settings data:', e);
+			loading = false;
 		}
 	});
 </script>

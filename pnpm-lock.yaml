@@ -9,7 +9,7 @@ importers:
   frontend:
     dependencies:
       pocketbase:
-        specifier: ^0.27.0
+        specifier: 0.27.0
         version: 0.27.0
     devDependencies:
       '@sveltejs/adapter-node':
