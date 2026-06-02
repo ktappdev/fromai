@@ -9,6 +9,9 @@
 
 	let { children } = $props();
 
+	// Mobile sidebar state
+	let sidebarOpen = $state(false);
+
 	let user = $state<any>(null);
 	let tasks = $state<any[]>([]);
 	let loading = $state(true);
@@ -142,6 +145,25 @@
 		currentToast = null;
 	}
 
+	function toggleSidebar() {
+		sidebarOpen = !sidebarOpen;
+	}
+
+	function closeSidebar() {
+		sidebarOpen = false;
+	}
+
+	// Close sidebar on Escape key
+	$effect(() => {
+		function handleKeyDown(e: KeyboardEvent) {
+			if (e.key === 'Escape') {
+				closeSidebar();
+			}
+		}
+		window.addEventListener('keydown', handleKeyDown);
+		return () => window.removeEventListener('keydown', handleKeyDown);
+	});
+
 	function getInitials(u: any): string {
 		if (u.name) {
 			return u.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
@@ -183,10 +205,41 @@
 <svelte:head>
 	<link rel="icon" href={favicon} />
 	<title>fromai</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </svelte:head>
 
 <div class="app">
-	<aside class="sidebar">
+	<!-- Mobile Header -->
+	<header class="mobile-header">
+		<button class="hamburger" onclick={toggleSidebar} aria-label="Toggle menu">
+			<span></span>
+			<span></span>
+			<span></span>
+		</button>
+		<a href="/" class="mobile-logo">
+			<span class="mobile-logo-icon">$</span>
+			<span class="mobile-logo-text">fromai</span>
+		</a>
+		{#if user}
+			<a href="/settings" class="mobile-avatar" aria-label="Settings">
+				{getInitials(user)}
+			</a>
+		{/if}
+	</header>
+
+	<!-- Mobile Sidebar Backdrop -->
+	{#if sidebarOpen}
+		<div
+			class="sidebar-backdrop"
+			role="button"
+			tabindex="0"
+			aria-label="Close sidebar"
+			onclick={closeSidebar}
+			onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && closeSidebar()}
+		></div>
+	{/if}
+
+	<aside class="sidebar" class:open={sidebarOpen}>
 		<div class="sidebar-header">
 			<a href="/" class="logo">
 				<span class="logo-icon">$</span>
@@ -301,6 +354,26 @@
 	{#if currentToast}
 		<BadgeToast badge={currentToast} visible={true} onDismiss={handleToastDismiss} />
 	{/if}
+
+	<!-- Mobile Bottom Nav -->
+	<nav class="mobile-nav">
+		<a href="/" class:active={$page.url.pathname === '/'}>
+			<span class="nav-icon">📋</span>
+			<span class="nav-label">Tasks</span>
+		</a>
+		<a href="/new" class:active={$page.url.pathname === '/new'}>
+			<span class="nav-icon">+</span>
+			<span class="nav-label">New</span>
+		</a>
+		<a href="/stats" class:active={$page.url.pathname === '/stats'}>
+			<span class="nav-icon">📊</span>
+			<span class="nav-label">Stats</span>
+		</a>
+		<a href="/settings" class:active={$page.url.pathname === '/settings'}>
+			<span class="nav-icon">⚙</span>
+			<span class="nav-label">Settings</span>
+		</a>
+	</nav>
 </div>
 
 <style>
@@ -313,8 +386,99 @@
 
 	.app {
 		display: flex;
-		height: 100vh;
+		height: 100dvh;
 		overflow: hidden;
+	}
+
+	/* Mobile Header */
+	.mobile-header {
+		display: none;
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 48px;
+		background: #000;
+		border-bottom: 1px solid #1a1a1a;
+		z-index: 50;
+		align-items: center;
+		padding: 0 12px;
+		gap: 12px;
+	}
+
+	.hamburger {
+		width: 44px;
+		height: 44px;
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		gap: 4px;
+		padding: 0;
+		flex-shrink: 0;
+	}
+
+	.hamburger span {
+		display: block;
+		width: 18px;
+		height: 2px;
+		background: #c9d1d9;
+		transition: background 0.15s;
+	}
+
+	.hamburger:hover span {
+		background: #e2e8f0;
+	}
+
+	.mobile-logo {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		text-decoration: none;
+		flex: 1;
+	}
+
+	.mobile-logo-icon {
+		color: #238636;
+		font-weight: 700;
+		font-size: 0.9rem;
+	}
+
+	.mobile-logo-text {
+		color: #e2e8f0;
+		font-weight: 700;
+		font-size: 0.9rem;
+		letter-spacing: -0.3px;
+	}
+
+	.mobile-avatar {
+		width: 28px;
+		height: 28px;
+		background: #238636;
+		color: #000;
+		font-size: 0.65rem;
+		font-weight: 700;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 50%;
+		text-decoration: none;
+		flex-shrink: 0;
+	}
+
+	/* Sidebar Backdrop */
+	.sidebar-backdrop {
+		display: none;
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.6);
+		z-index: 55;
 	}
 
 	/* ── Sidebar ── */
@@ -711,5 +875,91 @@
 
 	.settings-icon {
 		font-size: 0.8rem;
+	}
+
+	/* Mobile Bottom Nav */
+	.mobile-nav {
+		display: none;
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		height: 56px;
+		background: #000;
+		border-top: 1px solid #1a1a1a;
+		z-index: 50;
+		justify-content: space-around;
+		align-items: center;
+		padding: 0 8px;
+	}
+
+	.mobile-nav a {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 2px;
+		color: #8b949e;
+		text-decoration: none;
+		min-width: 44px;
+		height: 44px;
+		padding: 4px 8px;
+		border-top: 2px solid transparent;
+		transition: color 0.15s;
+	}
+
+	.mobile-nav a:hover {
+		color: #c9d1d9;
+	}
+
+	.mobile-nav a.active {
+		color: #238636;
+		border-top-color: #238636;
+	}
+
+	.nav-icon {
+		font-size: 1.1rem;
+		line-height: 1;
+	}
+
+	.nav-label {
+		font-size: 0.65rem;
+		line-height: 1;
+	}
+
+	/* Mobile Responsive (< 768px) */
+	@media (max-width: 767px) {
+		.mobile-header {
+			display: flex;
+		}
+
+		.sidebar-backdrop {
+			display: block;
+		}
+
+		.sidebar {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 280px;
+			max-width: 85vw;
+			height: 100dvh;
+			z-index: 60;
+			transform: translateX(-100%);
+			transition: transform 0.2s ease;
+		}
+
+		.sidebar.open {
+			transform: translateX(0);
+		}
+
+		.mobile-nav {
+			display: flex;
+		}
+
+		main {
+			padding-top: 48px;
+			padding-bottom: 56px;
+		}
 	}
 </style>

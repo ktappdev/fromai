@@ -231,6 +231,49 @@
 		margin: 24px 32px;
 	}
 
+	/* Mobile Responsive */
+	@media (max-width: 767px) {
+		.settings {
+			margin: 16px;
+		}
+
+		.key-row {
+			flex-direction: column;
+			align-items: stretch;
+		}
+
+		.key-display {
+			width: 100%;
+		}
+
+		.key-actions {
+			justify-content: stretch;
+		}
+
+		.key-actions button {
+			flex: 1;
+		}
+
+		.skill-download {
+			flex-direction: column;
+			align-items: stretch;
+		}
+
+		.skill-cmd {
+			width: 100%;
+		}
+
+		.input-row {
+			flex-direction: column;
+			align-items: stretch;
+		}
+
+		.input-row input {
+			width: 100%;
+			box-sizing: border-box;
+		}
+	}
+
 	h2 {
 		color: #e2e8f0;
 		font-size: 0.95rem;

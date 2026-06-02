@@ -187,4 +187,21 @@
 	.link:hover {
 		text-decoration: underline;
 	}
+
+	/* Mobile Responsive */
+	@media (max-width: 767px) {
+		.auth-card {
+			padding: 24px 16px;
+			max-width: none;
+		}
+
+		.field input {
+			padding: 12px;
+			font-size: 16px;
+		}
+
+		button[type='submit'] {
+			min-height: 44px;
+		}
+	}
 </style>

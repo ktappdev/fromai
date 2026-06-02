@@ -26,20 +26,6 @@ Example: AI is editing a QR code generator, encounters a loop function for bitma
 - Huge multi-day projects
 - Pure explanation questions (no code required)
 
-## Setup (One-Time)
-
-```bash
-# Get API key from the fromai settings page (one-time human setup)
-fai init --key "your-api-key"
-```
-
-Stores key in `~/.config/fromai/config.toml`. Subsequent commands read it automatically.
-
-Verify auth:
-```bash
-fai whoami
-```
-
 **Do not construct frontend URLs. Use `fai` commands as source of truth.**
 
 ## Async Default Behavior
@@ -117,11 +103,7 @@ Before creating a task, check the user's history:
 fai task list --json
 ```
 
-Count completed tasks and scan recent grades. For deeper stats:
-
-```bash
-# Available via /api/me/stats — total_tasks_completed, current_streak, badges
-```
+Count completed tasks and scan recent grades.
 
 ### Difficulty Scale
 
