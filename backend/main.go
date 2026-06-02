@@ -460,6 +460,14 @@ func createTaskHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) erro
 			return err
 		}
 
+		// Notify user via Telegram
+		go func() {
+			title := record.GetString("title")
+			language := record.GetString("language")
+			message := fmt.Sprintf("📋 New task: %s (%s)\nOpen your dashboard to start working.", title, language)
+			notifyUser(app, user.Id, message)
+		}()
+
 		return e.JSON(http.StatusCreated, record.PublicExport())
 	}
 }
