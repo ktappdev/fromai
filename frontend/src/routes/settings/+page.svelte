@@ -272,6 +272,18 @@
 		.input-row input {
 			width: 100%;
 			box-sizing: border-box;
+			font-size: 16px;
+			padding: 12px 10px;
+		}
+
+		.key-actions button,
+		.input-row button,
+		.download-btn,
+		.copy-btn,
+		.telegram-connected button {
+			min-height: 44px;
+			font-size: 16px;
+			padding: 12px 16px;
 		}
 	}
 

@@ -284,6 +284,20 @@
 		margin: 24px 32px;
 	}
 
+	@media (max-width: 767px) {
+		.stats {
+			margin: 16px;
+		}
+
+		.badge-link {
+			font-size: 16px;
+			min-height: 44px;
+			display: inline-flex;
+			align-items: center;
+			padding: 0 8px;
+		}
+	}
+
 	h1 {
 		color: #238636;
 		font-size: 1.1rem;

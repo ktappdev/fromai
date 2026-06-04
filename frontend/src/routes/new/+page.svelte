@@ -170,4 +170,25 @@
 		opacity: 0.5;
 		cursor: not-allowed;
 	}
+
+	@media (max-width: 767px) {
+		.welcome {
+			margin: 16px;
+			padding: 0;
+		}
+
+		.field input,
+		.field textarea,
+		.field select {
+			font-size: 16px;
+			padding: 12px 10px;
+		}
+
+		button[type='submit'] {
+			font-size: 16px;
+			padding: 12px 16px;
+			min-height: 44px;
+			width: 100%;
+		}
+	}
 </style>

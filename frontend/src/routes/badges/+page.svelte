@@ -233,9 +233,24 @@
 		font-size: 0.75rem;
 		color: #58a6ff;
 		text-decoration: none;
+		display: inline-block;
+		padding: 12px 8px;
+		margin: -12px -8px;
 	}
 
 	.back-link a:hover {
 		text-decoration: underline;
+	}
+
+	@media (max-width: 767px) {
+		.badges-page {
+			margin: 16px;
+		}
+
+		.back-link a {
+			font-size: 16px;
+			padding: 16px 8px;
+			margin: -16px -8px;
+		}
 	}
 </style>

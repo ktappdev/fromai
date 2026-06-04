@@ -64,6 +64,19 @@
 		animation: fadeIn 0.3s ease-out;
 	}
 
+	@media (max-width: 400px) {
+		.toast-container {
+			bottom: 12px;
+			right: 12px;
+			left: 12px;
+		}
+
+		.toast {
+			min-width: unset;
+			max-width: calc(100vw - 24px);
+		}
+	}
+
 	@keyframes fadeIn {
 		from {
 			opacity: 0;

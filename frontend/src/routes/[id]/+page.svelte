@@ -333,4 +333,38 @@
 	.view-context-btn { background: transparent; color: #58a6ff; border: 1px solid #1a1a1a; padding: 4px 12px; font-size: 0.75rem; font-family: inherit; cursor: pointer; text-align: left; margin-bottom: 12px; }
 	.view-context-btn:hover { background: rgba(88, 166, 255, 0.1); border-color: #58a6ff; }
 	.view-context-btn .prompt { color: #238636; margin-right: 6px; }
+
+	@media (max-width: 767px) {
+		.task-view {
+			height: 100dvh;
+		}
+
+		.info-panel {
+			padding: 12px 16px;
+		}
+
+		.view-context-btn {
+			font-size: 16px;
+			padding: 12px;
+			min-height: 44px;
+			width: 100%;
+			box-sizing: border-box;
+		}
+
+		.actions {
+			flex-wrap: wrap;
+		}
+
+		.actions button {
+			font-size: 16px;
+			padding: 12px 16px;
+			min-height: 44px;
+			flex: 1 1 calc(50% - 4px);
+		}
+
+		.actions button.archive.collapsed,
+		.actions button.cancel {
+			flex: 1 1 100%;
+		}
+	}
 </style>
